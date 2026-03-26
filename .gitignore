@@ -1,0 +1,31 @@
+.vscode/
+
+# Build output
+**/bin/
+**/obj/
+
+# Frontend dependencies/build
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/coverage/
+
+# Environment and local secrets
+.env
+.env.*
+!.env.example
+**/*.pfx
+**/*.pem
+**/*.key
+**/*.jks
+**/*.keystore
+**/id_rsa*
+
+# Local git metadata accidentally nested inside the repo
+frontend/.git/
+frontend/.git.backup/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db

@@ -1,57 +1,129 @@
 "use client";
+
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import axiosClient from "@/lib/axios";
 import { generateSlug } from "@/lib/utils";
+import type { CategoryTreeNode } from "@/app/types";
 
-export function CategoryDialog({ open, onOpenChange, category, flatCategories, onSuccess }: any) {
-  const { register, handleSubmit, setValue, reset, watch } = useForm();
-  
-  const nameValue = watch("name");
+const categorySchema = z.object({
+  name: z.string().min(1, "Ten danh muc khong duoc de trong"),
+  slug: z.string().min(1, "Slug khong duoc de trong"),
+  description: z.string().optional(),
+  parentId: z.string(),
+  isActive: z.boolean(),
+});
 
- useEffect(() => {
-  if (nameValue) {
-    setValue("slug", generateSlug(nameValue));
-  }
-}, [nameValue, setValue]);
+type CategoryFormValues = z.infer<typeof categorySchema>;
+
+interface CategoryDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  category: CategoryTreeNode | null;
+  flatCategories: CategoryTreeNode[];
+  onSuccess: () => void | Promise<void>;
+}
+
+export function CategoryDialog({
+  open,
+  onOpenChange,
+  category,
+  flatCategories,
+  onSuccess,
+}: CategoryDialogProps) {
+  const { register, handleSubmit, setValue, reset, control } =
+    useForm<CategoryFormValues>({
+      resolver: zodResolver(categorySchema),
+      defaultValues: {
+        name: "",
+        slug: "",
+        description: "",
+        parentId: "root",
+        isActive: true,
+      },
+    });
+
+  const nameValue = useWatch({ control, name: "name" });
+  const parentId = useWatch({ control, name: "parentId" }) ?? "root";
+  const isActiveValue = useWatch({ control, name: "isActive" }) ?? true;
+
+  useEffect(() => {
+    if (nameValue) {
+      setValue("slug", generateSlug(nameValue));
+    }
+  }, [nameValue, setValue]);
 
   useEffect(() => {
     if (category) {
-      reset({ ...category, parentId: category.parentId?.toString() || "root" }); // [cite: 80-81, 83-84]
-    } else {
-      reset({ name: "", slug: "", description: "", parentId: "root", isActive: true });
+      reset({
+        ...category,
+        description: category.description ?? "",
+        parentId: category.parentId?.toString() || "root",
+      });
+      return;
     }
-  }, [category, reset, open]);
 
-  const onSubmit = async (values: any) => {
+    reset({
+      name: "",
+      slug: "",
+      description: "",
+      parentId: "root",
+      isActive: true,
+    });
+  }, [category, open, reset]);
+
+  const onSubmit = async (values: CategoryFormValues) => {
     const payload = {
       ...values,
-      parentId: values.parentId === "root" ? null : Number(values.parentId) // Ép kiểu về số cho Backend [cite: 80-81]
+      parentId: values.parentId === "root" ? null : Number(values.parentId),
     };
+
     try {
-      if (category) await axiosClient.put(`/Categories/${category.id}`, payload); // [cite: 26-31]
-      else await axiosClient.post("/Categories", payload); // [cite: 23-26]
-      onSuccess();
+      if (category) {
+        await axiosClient.put(`/Categories/${category.id}`, payload);
+      } else {
+        await axiosClient.post("/Categories", payload);
+      }
+
+      await onSuccess();
       onOpenChange(false);
-    } catch (error) { 
-      console.error(error); 
-      alert("Lỗi lưu danh mục!");
+    } catch (error) {
+      console.error(error);
+      alert("Loi luu danh muc!");
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent aria-describedby={undefined}>
-        <DialogHeader><DialogTitle>{category ? "Sửa Danh mục" : "Thêm Danh mục"}</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>
+            {category ? "Sua danh muc" : "Them danh muc"}
+          </DialogTitle>
+        </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <Label>Tên danh mục *</Label>
+            <Label>Ten danh muc *</Label>
             <Input {...register("name")} />
           </div>
           <div className="space-y-2">
@@ -59,31 +131,43 @@ export function CategoryDialog({ open, onOpenChange, category, flatCategories, o
             <Input {...register("slug")} />
           </div>
           <div className="space-y-2">
-            <Label>Danh mục cha</Label>
-            <Select onValueChange={(val: string) => setValue("parentId", val)} value={watch("parentId") ? watch("parentId").toString() : "root"}>
-              <SelectTrigger><SelectValue placeholder="Chọn danh mục cha" /></SelectTrigger>
+            <Label>Danh muc cha</Label>
+            <Select
+              onValueChange={(value: string) => setValue("parentId", value)}
+              value={parentId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Chon danh muc cha" />
+              </SelectTrigger>
               <SelectContent>
-  <SelectItem value="root">-- Danh mục gốc --</SelectItem>
-  {flatCategories.map((c: any) => {
-    // 1. NGĂN CHẶN CHỌN CHÍNH NÓ LÀM CHA
-    // Nếu ID của danh mục trong list bằng với ID của danh mục đang sửa thì ẩn đi
-    if (category && c.id === category.id) return null;
+                <SelectItem value="root">-- Danh muc goc --</SelectItem>
+                {flatCategories.map((item) => {
+                  if (category && item.id === category.id) {
+                    return null;
+                  }
 
-    return (
-      <SelectItem key={c.id} value={c.id.toString()}>
-        {c.name}
-      </SelectItem>
-    );
-  })}
-</SelectContent>
+                  return (
+                    <SelectItem key={item.id} value={item.id.toString()}>
+                      {item.name}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
             </Select>
           </div>
           <div className="flex items-center justify-between pt-2">
-            <Label>Hoạt động</Label>
-            <Switch checked={watch("isActive")} onCheckedChange={(val: boolean) => setValue("isActive", val)} />
+            <Label>Hoat dong</Label>
+            <Switch
+              checked={isActiveValue}
+              onCheckedChange={(value: boolean) =>
+                setValue("isActive", value)
+              }
+            />
           </div>
           <DialogFooter className="mt-6">
-            <Button type="submit" className="bg-blue-600">Lưu</Button>
+            <Button type="submit" className="bg-blue-600">
+              Luu
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

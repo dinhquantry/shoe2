@@ -1,4 +1,22 @@
-import axios from 'axios';
+import axios, {
+  type AxiosInstance,
+  type AxiosRequestConfig,
+} from "axios";
+
+type ApiClient = Omit<AxiosInstance, "get" | "post" | "put" | "delete"> & {
+  get<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T>;
+  delete<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T>;
+  post<T = unknown, D = unknown>(
+    url: string,
+    data?: D,
+    config?: AxiosRequestConfig<D>
+  ): Promise<T>;
+  put<T = unknown, D = unknown>(
+    url: string,
+    data?: D,
+    config?: AxiosRequestConfig<D>
+  ): Promise<T>;
+};
 
 const axiosClient = axios.create({
   baseURL: "http://localhost:5209/api", 
@@ -40,4 +58,4 @@ axiosClient.interceptors.response.use(
   }
 );
 
-export default axiosClient;
+export default axiosClient as ApiClient;

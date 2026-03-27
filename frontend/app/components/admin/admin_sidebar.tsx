@@ -3,19 +3,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutGrid,
-  Box,
   ShoppingCart,
   Users,
   BarChart3,
   Settings,
-  ChevronLeft,
-  ChevronsUpDown,
   Tag,
   FolderTree,
   ShoppingBag,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 // Định nghĩa mảng Menu để code gọn gàng, dễ thêm bớt sau này
 const adminMenuItems = [

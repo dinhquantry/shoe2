@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { AxiosError } from "axios";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -17,6 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import type { ApiErrorResponse, AuthLoginResponse } from "@/app/types";
 
 const loginSchema = z.object({
   email: z.string().email("Email khong dung dinh dang"),
@@ -68,7 +70,10 @@ export default function LoginPage() {
     setLoginError("");
 
     try {
-      const response: { token?: string } = await axiosClient.post("/Auth/login", values);
+      const response = await axiosClient.post<AuthLoginResponse, LoginFormValues>(
+        "/Auth/login",
+        values
+      );
 
       if (!response.token) {
         setLoginError("Dang nhap khong thanh cong");
@@ -82,9 +87,12 @@ export default function LoginPage() {
       Cookies.set("role", role, { expires: 7 });
 
       window.location.href = role === "Admin" ? "/admin" : "/";
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const apiError = error as AxiosError<ApiErrorResponse>;
       setLoginError(
-        error.response?.data?.message || "Email hoac mat khau khong dung!"
+        apiError.response?.data?.error?.message ??
+          apiError.response?.data?.message ??
+          "Email hoac mat khau khong dung!"
       );
     } finally {
       setIsLoading(false);

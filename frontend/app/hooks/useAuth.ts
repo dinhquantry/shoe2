@@ -2,10 +2,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import Cookies from 'js-cookie';
+import type { AuthUser } from '@/app/types';
 
 interface AuthState {
-  user: { fullName: string; email: string; role?: number } | null;
-  setAuth: (user: any, token: string) => void;
+  user: AuthUser | null;
+  setAuth: (user: AuthUser, token: string) => void;
   logout: () => void;
 }
 

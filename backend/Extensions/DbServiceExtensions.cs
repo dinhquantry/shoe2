@@ -18,6 +18,12 @@ namespace backend.Extensions
             services.AddScoped<IProductService, ProductService>();
             services.AddScoped<IProductVariantService, ProductVariantService>();
             services.AddScoped<IProductImageService, ProductImageService>();
+            services.AddScoped<ICartService, CartService>();
+            services.AddScoped<IOrderService, OrderService>();
+            services.AddScoped<IUserAddressService, UserAddressService>();
+            services.AddScoped<IReviewService, ReviewService>();
+            services.AddScoped<ICouponService, CouponService>();
+
             services.AddCors(options =>
                 {
                     options.AddPolicy("AllowFrontend", policy =>

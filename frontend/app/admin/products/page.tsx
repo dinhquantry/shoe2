@@ -1,131 +1,146 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import axiosClient from "@/lib/axios";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Edit, Trash2, Search, Package } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Edit, Package, Plus, Search, Trash2 } from "lucide-react";
+import type {
+  ApiSuccessResponse,
+  ProductListItem,
+  ProductListResponse,
+} from "@/app/types";
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<ProductListItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async (term: string) => {
     try {
-      // Gọi API lấy danh sách sản phẩm (có thể truyền thêm search, page, pageSize)
-      const response: any = await axiosClient.get(`/Products?page=1&pageSize=20&search=${searchTerm}`);
-      
-      // Tùy thuộc Backend trả về dạng phân trang { items: [] } hay mảng []
-      if (response && response.items) setProducts(response.items);
-      else if (response && response.data) setProducts(response.data);
-      else if (Array.isArray(response)) setProducts(response);
+      const response = await axiosClient.get<ApiSuccessResponse<ProductListResponse>>(
+        `/Products?page=1&pageSize=20&search=${term}`
+      );
+      setProducts(response.data.items);
     } catch (error) {
-      console.error("Lỗi lấy danh sách sản phẩm:", error);
+      console.error("Loi lay danh sach san pham:", error);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    // Gọi lại API mỗi khi searchTerm thay đổi (có thể dùng debounce để tối ưu hơn sau này)
-    const delayDebounceFn = setTimeout(() => {
-      fetchProducts();
+    const debounceId = window.setTimeout(() => {
+      void fetchProducts(searchTerm);
     }, 500);
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm]);
+
+    return () => {
+      window.clearTimeout(debounceId);
+    };
+  }, [fetchProducts, searchTerm]);
 
   const handleDelete = async (id: number) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) {
+    if (window.confirm("Ban co chac chan muon xoa san pham nay?")) {
       try {
-        await axiosClient.delete(`/Products/${id}`); // [cite: 60-62]
-        fetchProducts();
-      } catch (error) {
-        alert("Có lỗi khi xóa sản phẩm!");
+        await axiosClient.delete(`/Products/${id}`);
+        await fetchProducts(searchTerm);
+      } catch {
+        alert("Co loi khi xoa san pham!");
       }
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Sản phẩm</h2>
-          <p className="text-zinc-500 text-sm">Quản lý kho giày, biến thể và giá bán.</p>
+          <h2 className="text-2xl font-bold tracking-tight">San pham</h2>
+          <p className="text-sm text-zinc-500">
+            Quan ly kho giay, bien the va gia ban.
+          </p>
         </div>
-        
-        {/* Nút chuyển sang trang Thêm mới thay vì mở Popup */}
+
         <Link href="/admin/products/create">
           <Button className="bg-zinc-900">
-            <Plus className="w-4 h-4 mr-2" /> Thêm sản phẩm
+            <Plus className="mr-2 h-4 w-4" /> Them san pham
           </Button>
         </Link>
       </div>
 
-      {/* Thanh công cụ: Tìm kiếm */}
       <div className="flex items-center gap-2">
         <div className="relative w-full max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-          <Input 
-            placeholder="Tìm theo tên sản phẩm..." 
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+          <Input
+            placeholder="Tim theo ten san pham..."
             className="pl-9"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(event) => setSearchTerm(event.target.value)}
           />
         </div>
       </div>
 
-      {/* Bảng dữ liệu */}
-      <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+      <div className="overflow-hidden rounded-lg border bg-white shadow-sm">
         <Table>
           <TableHeader className="bg-zinc-50">
             <TableRow>
-              <TableHead>Tên sản phẩm</TableHead>
-              <TableHead>Giá cơ bản</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              <TableHead className="text-right">Thao tác</TableHead>
+              <TableHead>Ten san pham</TableHead>
+              <TableHead>Gia co ban</TableHead>
+              <TableHead>Trang thai</TableHead>
+              <TableHead className="text-right">Thao tac</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {products.length > 0 ? (
-              products.map((product: any) => (
+              products.map((product) => (
                 <TableRow key={product.id} className="hover:bg-zinc-50/50">
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-zinc-100 rounded-md flex items-center justify-center border">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-md border bg-zinc-100">
                         <Package className="h-5 w-5 text-zinc-400" />
                       </div>
                       <div>
                         <p>{product.name}</p>
-                        <p className="text-xs text-zinc-500">Mã: SP-{product.id}</p>
+                        <p className="text-xs text-zinc-500">Ma: SP-{product.id}</p>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-zinc-600 font-medium">
+                  <TableCell className="font-medium text-zinc-600">
                     ${product.basePrice?.toFixed(2) || "0.00"}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={product.isActive ? "default" : "secondary"}>
-                      {product.isActive ? "Đang bán" : "Ngừng bán"}
+                    <Badge
+                      variant={product.isActive === false ? "secondary" : "default"}
+                    >
+                      {product.isActive === false ? "Ngung ban" : "Dang ban"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right space-x-2">
+                  <TableCell className="space-x-2 text-right">
                     <Link href={`/admin/products/edit/${product.id}`}>
                       <Button variant="ghost" size="icon">
-                        <Edit className="w-4 h-4 text-blue-600" />
+                        <Edit className="h-4 w-4 text-blue-600" />
                       </Button>
                     </Link>
-                    <Button onClick={() => handleDelete(product.id)} variant="ghost" size="icon">
-                      <Trash2 className="w-4 h-4 text-red-500" />
+                    <Button
+                      onClick={() => handleDelete(product.id)}
+                      variant="ghost"
+                      size="icon"
+                    >
+                      <Trash2 className="h-4 w-4 text-red-500" />
                     </Button>
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-10 text-zinc-500">
-                  Chưa có sản phẩm nào. Hãy thêm sản phẩm đầu tiên!
+                <TableCell colSpan={5} className="py-10 text-center text-zinc-500">
+                  Chua co san pham nao. Hay them san pham dau tien!
                 </TableCell>
               </TableRow>
             )}

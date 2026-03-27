@@ -1,66 +1,130 @@
 "use client";
-import { useEffect, useState, useMemo } from "react";
+
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import axiosClient from "@/lib/axios";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit, Trash2, ChevronRight, ChevronDown, FolderTree } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Edit,
+  FolderTree,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { CategoryDialog } from "./CategoryDialog";
+import type { ApiSuccessResponse, CategoryTreeNode } from "@/app/types";
 
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<CategoryTreeNode[]>([]);
   const [expandedRows, setExpandedRows] = useState<number[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedCategory, setSelectedCategory] =
+    useState<CategoryTreeNode | null>(null);
 
   const fetchCategories = async () => {
     try {
-      const response: any = await axiosClient.get("/Categories/tree"); // [cite: 22-23]
-      if (response && response.data) setCategories(response.data);
-      else if (Array.isArray(response)) setCategories(response);
-    } catch (error) { console.error(error); }
+      const response = await axiosClient.get<
+        ApiSuccessResponse<CategoryTreeNode[]>
+      >("/Categories/tree");
+      setCategories(response.data);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
-  useEffect(() => { fetchCategories(); }, []);
+  useEffect(() => {
+    let ignore = false;
 
-  // Chuyển dạng cây thành mảng phẳng để đưa vào Dropdown Chọn Danh Mục Cha
+    const loadCategories = async () => {
+      try {
+        const response = await axiosClient.get<
+          ApiSuccessResponse<CategoryTreeNode[]>
+        >("/Categories/tree");
+        if (!ignore) {
+          setCategories(response.data);
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    void loadCategories();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
   const flatCategories = useMemo(() => {
-    const flatten = (cats: any[]): any[] => cats.reduce((acc, cat) => [...acc, cat, ...flatten(cat.children || [])], []);
+    const flatten = (items: CategoryTreeNode[]): CategoryTreeNode[] =>
+      items.reduce<CategoryTreeNode[]>(
+        (acc, item) => [...acc, item, ...flatten(item.children ?? [])],
+        []
+      );
+
     return flatten(categories);
   }, [categories]);
 
   const toggleRow = (id: number) => {
-    setExpandedRows(prev => prev.includes(id) ? prev.filter(rowId => rowId !== id) : [...prev, id]);
+    setExpandedRows((prev) =>
+      prev.includes(id) ? prev.filter((rowId) => rowId !== id) : [...prev, id]
+    );
   };
 
   const handleDelete = async (id: number) => {
-    if (window.confirm("Xóa danh mục này sẽ xóa cả danh mục con. Tiếp tục?")) {
+    if (window.confirm("Xoa danh muc nay va tiep tuc?")) {
       try {
-        await axiosClient.delete(`/Categories/${id}`); // [cite: 31-34]
-        fetchCategories();
-      } catch (error) { alert("Lỗi khi xóa!"); }
+        await axiosClient.delete(`/Categories/${id}`);
+        await fetchCategories();
+      } catch {
+        alert("Loi khi xoa!");
+      }
     }
   };
 
-  const handleEdit = (cat: any) => {
-    setSelectedCategory(cat);
+  const handleEdit = (category: CategoryTreeNode) => {
+    setSelectedCategory(category);
     setIsDialogOpen(true);
   };
 
-  const RenderCategoryRow = ({ category, depth = 0 }: { category: any; depth: number }) => {
-    const hasChildren = category.children && category.children.length > 0;
+  const renderCategoryRow = (
+    category: CategoryTreeNode,
+    depth = 0
+  ): ReactNode => {
+    const hasChildren = category.children.length > 0;
     const isExpanded = expandedRows.includes(category.id);
 
     return (
       <>
         <TableRow className="hover:bg-zinc-50/50">
           <TableCell className="font-medium">
-            <div className="flex items-center" style={{ paddingLeft: `${depth * 24}px` }}>
+            <div
+              className="flex items-center"
+              style={{ paddingLeft: `${depth * 24}px` }}
+            >
               {hasChildren ? (
-                <button onClick={() => toggleRow(category.id)} className="mr-2 text-zinc-500">
-                  {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                <button
+                  onClick={() => toggleRow(category.id)}
+                  className="mr-2 text-zinc-500"
+                >
+                  {isExpanded ? (
+                    <ChevronDown size={16} />
+                  ) : (
+                    <ChevronRight size={16} />
+                  )}
                 </button>
-              ) : <span className="w-6" />}
+              ) : (
+                <span className="w-6" />
+              )}
               <FolderTree size={16} className="mr-2 text-blue-500" />
               {category.name}
             </div>
@@ -68,56 +132,80 @@ export default function CategoriesPage() {
           <TableCell className="text-zinc-500">{category.slug}</TableCell>
           <TableCell>
             <Badge variant={category.isActive ? "default" : "secondary"}>
-              {category.isActive ? "Hoạt động" : "Ẩn"}
+              {category.isActive ? "Hoat dong" : "An"}
             </Badge>
           </TableCell>
-          <TableCell className="text-right space-x-2">
-            <Button onClick={() => handleEdit(category)} variant="ghost" size="icon"><Edit className="w-4 h-4 text-blue-600" /></Button>
-            <Button onClick={() => handleDelete(category.id)} variant="ghost" size="icon"><Trash2 className="w-4 h-4 text-red-500" /></Button>
+          <TableCell className="space-x-2 text-right">
+            <Button
+              onClick={() => handleEdit(category)}
+              variant="ghost"
+              size="icon"
+            >
+              <Edit className="h-4 w-4 text-blue-600" />
+            </Button>
+            <Button
+              onClick={() => handleDelete(category.id)}
+              variant="ghost"
+              size="icon"
+            >
+              <Trash2 className="h-4 w-4 text-red-500" />
+            </Button>
           </TableCell>
         </TableRow>
-        {isExpanded && hasChildren && category.children.map((child: any) => (
-          <RenderCategoryRow key={child.id}
-          category={{ ...child, parentId: category.id }}
-          depth={depth + 1} />
-        ))}
+        {isExpanded &&
+          hasChildren &&
+          category.children.map((child) =>
+            renderCategoryRow({ ...child, parentId: category.id }, depth + 1)
+          )}
       </>
     );
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Danh mục sản phẩm</h2>
-        <Button onClick={() => { setSelectedCategory(null); setIsDialogOpen(true); }} className="bg-zinc-900">
-          <Plus className="w-4 h-4 mr-2" /> Tạo danh mục
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Danh muc san pham</h2>
+        <Button
+          onClick={() => {
+            setSelectedCategory(null);
+            setIsDialogOpen(true);
+          }}
+          className="bg-zinc-900"
+        >
+          <Plus className="mr-2 h-4 w-4" /> Tao danh muc
         </Button>
       </div>
 
-      <div className="bg-white rounded-lg border shadow-sm">
+      <div className="rounded-lg border bg-white shadow-sm">
         <Table>
           <TableHeader className="bg-zinc-50">
             <TableRow>
-              <TableHead className="w-[40%]">Tên danh mục</TableHead>
+              <TableHead className="w-[40%]">Ten danh muc</TableHead>
               <TableHead>Slug</TableHead>
-              <TableHead>Trạng thái</TableHead>
-              <TableHead className="text-right">Thao tác</TableHead>
+              <TableHead>Trang thai</TableHead>
+              <TableHead className="text-right">Thao tac</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {categories.length > 0 ? categories.map((cat: any) => (
-              <RenderCategoryRow key={cat.id} category={cat} depth={0} />
-            )) : <TableRow><TableCell colSpan={4} className="text-center py-6">Chưa có dữ liệu</TableCell></TableRow>}
+            {categories.length > 0 ? (
+              categories.map((category) => renderCategoryRow(category))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={4} className="py-6 text-center">
+                  Chua co du lieu
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
 
-      <CategoryDialog 
-        open={isDialogOpen} 
-        onOpenChange={setIsDialogOpen} 
-        category={selectedCategory} 
+      <CategoryDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        category={selectedCategory}
         flatCategories={flatCategories}
-        onSuccess={fetchCategories} 
+        onSuccess={fetchCategories}
       />
     </div>
   );

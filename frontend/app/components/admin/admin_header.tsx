@@ -1,16 +1,44 @@
 "use client";
 
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/app/hooks/useAuth";
+import { cn } from "@/lib/utils";
 
-export function AdminHeader() {
+type AdminHeaderProps = {
+  collapsed: boolean;
+  onToggle: () => void;
+};
+
+export function AdminHeader({ collapsed, onToggle }: AdminHeaderProps) {
   const { user } = useAuth();
   const userInitial = user?.fullName
     ? user.fullName.split(" ").pop()?.charAt(0).toUpperCase()
     : "U";
 
   return (
-    <header className="fixed left-64 right-0 top-0 z-30 flex h-16 items-center justify-end border-b border-zinc-200 bg-white px-6 shadow-sm">
+    <header
+      className={cn(
+        "fixed right-0 top-0 z-30 flex h-16 items-center justify-between border-b border-zinc-200 bg-white px-6 shadow-sm transition-[left] duration-300",
+        collapsed ? "left-20" : "left-64"
+      )}
+    >
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        onClick={onToggle}
+        className="border-zinc-200 bg-white shadow-sm"
+        aria-label={collapsed ? "Mo rong sidebar" : "Thu gon sidebar"}
+      >
+        {collapsed ? (
+          <PanelLeftOpen className="h-4 w-4" />
+        ) : (
+          <PanelLeftClose className="h-4 w-4" />
+        )}
+      </Button>
+
       <div className="flex items-center gap-3">
         <div className="hidden text-right sm:block">
           <p className="text-sm font-semibold leading-none text-zinc-900">

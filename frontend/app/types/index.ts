@@ -36,6 +36,20 @@ export interface Brand {
   isActive: boolean;
 }
 
+export interface Coupon {
+  id: number;
+  code: string;
+  discountType: number;
+  discountValue: number;
+  minOrderValue: number;
+  maxDiscountValue: number;
+  startDate: string;
+  endDate: string;
+  usageLimit: number;
+  usedCount: number;
+  isActive: boolean;
+}
+
 export interface CategoryTreeNode {
   id: number;
   name: string;

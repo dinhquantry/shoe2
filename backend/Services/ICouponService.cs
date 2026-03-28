@@ -5,8 +5,12 @@ namespace backend.Services
 {
     public interface ICouponService
     {
+        Task<IEnumerable<Coupon>> GetAllCouponsAsync();
+        Task<Coupon?> GetCouponByIdAsync(int id);
         Task<Coupon> CreateCouponAsync(CouponCreateUpdateDto dto);
-        Task<Coupon?> ValidateCouponAsync(string code, decimal cartTotal); // Check lúc đặt hàng
-        Task<bool> RecordCouponUsageAsync(int couponId); // Tăng biến UsedCount sau khi đặt hàng thành công
+        Task<bool> UpdateCouponAsync(int id, CouponCreateUpdateDto dto);
+        Task<bool> SoftDeleteCouponAsync(int id);
+        Task<Coupon?> ValidateCouponAsync(string code, decimal cartTotal, int userId);
+        Task<bool> RecordCouponUsageAsync(int couponId, int userId, int orderId);
     }
 }

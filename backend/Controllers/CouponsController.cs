@@ -2,6 +2,7 @@ using backend.DTOs;
 using backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace backend.Controllers
 {
@@ -16,7 +17,34 @@ namespace backend.Controllers
             _couponService = couponService;
         }
 
-        // 1. ADMIN: TẠO MÃ GIẢM GIÁ MỚI
+        private int GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (int.TryParse(userIdClaim, out int userId)) return userId;
+            throw new UnauthorizedAccessException("Khong xac dinh duoc danh tinh.");
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAllCoupons()
+        {
+            var coupons = await _couponService.GetAllCouponsAsync();
+            return Ok(new { success = true, data = coupons });
+        }
+
+        [HttpGet("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetCouponById(int id)
+        {
+            var coupon = await _couponService.GetCouponByIdAsync(id);
+            if (coupon == null)
+            {
+                return NotFound(new { success = false, message = "Khong tim thay ma giam gia" });
+            }
+
+            return Ok(new { success = true, data = coupon });
+        }
+
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateCoupon([FromBody] CouponCreateUpdateDto dto)
@@ -24,7 +52,7 @@ namespace backend.Controllers
             try
             {
                 var coupon = await _couponService.CreateCouponAsync(dto);
-                return Ok(new { success = true, message = "Tạo mã giảm giá thành công", data = coupon });
+                return Ok(new { success = true, message = "Tao ma giam gia thanh cong", data = coupon });
             }
             catch (Exception ex)
             {
@@ -32,18 +60,53 @@ namespace backend.Controllers
             }
         }
 
-        // 2. NGƯỜI DÙNG: KIỂM TRA MÃ GIẢM GIÁ (Lúc ở trang Giỏ hàng / Thanh toán)
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> UpdateCoupon(int id, [FromBody] CouponCreateUpdateDto dto)
+        {
+            try
+            {
+                var updated = await _couponService.UpdateCouponAsync(id, dto);
+                if (!updated)
+                {
+                    return NotFound(new { success = false, message = "Khong tim thay ma giam gia" });
+                }
+
+                return Ok(new { success = true, message = "Cap nhat ma giam gia thanh cong" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> SoftDeleteCoupon(int id)
+        {
+            var deleted = await _couponService.SoftDeleteCouponAsync(id);
+            if (!deleted)
+            {
+                return NotFound(new { success = false, message = "Khong tim thay ma giam gia" });
+            }
+
+            return Ok(new { success = true, message = "Da xoa mem ma giam gia" });
+        }
+
         [HttpGet("validate")]
-        [Authorize] // Người dùng phải đăng nhập mới được xài mã
+        [Authorize]
         public async Task<IActionResult> ValidateCoupon([FromQuery] string code, [FromQuery] decimal cartTotal)
         {
             try
             {
-                var coupon = await _couponService.ValidateCouponAsync(code, cartTotal);
-                return Ok(new { 
-                    success = true, 
-                    message = "Mã giảm giá hợp lệ!", 
-                    data = new {
+                var userId = GetCurrentUserId();
+                var coupon = await _couponService.ValidateCouponAsync(code, cartTotal, userId);
+                return Ok(new
+                {
+                    success = true,
+                    message = "Ma giam gia hop le!",
+                    data = new
+                    {
                         Code = coupon!.Code,
                         DiscountType = coupon.DiscountType,
                         DiscountValue = coupon.DiscountValue,

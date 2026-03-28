@@ -19,79 +19,105 @@ namespace backend.Services
 
         public async Task<Order> PlaceOrderAsync(int userId, CheckoutDto dto)
         {
-            var cartItems = await _context.CartItems
-                .Include(c => c.ProductVariant)
-                    .ThenInclude(pv => pv!.Product)
-                .Where(c => c.UserId == userId)
-                .ToListAsync();
+            await using var transaction = await _context.Database.BeginTransactionAsync();
 
-            if (!cartItems.Any())
+            try
             {
-                throw new Exception("Gio hang dang trong.");
-            }
+                var cartItems = await _context.CartItems
+                    .Include(c => c.ProductVariant)
+                        .ThenInclude(pv => pv!.Product)
+                    .Where(c => c.UserId == userId)
+                    .ToListAsync();
 
-            var order = new Order
-            {
-                OrderCode = GenerateOrderCode(),
-                UserId = userId,
-                ReceiverName = dto.ReceiverName,
-                ReceiverPhone = dto.ReceiverPhone,
-                ShippingAddress = dto.ShippingAddress,
-                Note = dto.Note,
-                PaymentMethod = dto.PaymentMethod,
-                PaymentStatus = 0,
-                OrderStatus = 0,
-                DiscountAmount = 0
-            };
-
-            decimal subTotal = 0;
-
-            foreach (var item in cartItems)
-            {
-                var variant = item.ProductVariant;
-                if (variant == null || variant.Product == null) continue;
-
-                if (variant.StockQuantity < item.Quantity)
+                if (!cartItems.Any())
                 {
-                    throw new Exception($"San pham {variant.Product.Name} (Size {variant.Size}) khong du so luong.");
+                    throw new Exception("Gio hang dang trong.");
                 }
 
-                variant.StockQuantity -= item.Quantity;
-
-                var lineTotal = variant.Price * item.Quantity;
-                subTotal += lineTotal;
-
-                order.OrderItems.Add(new OrderItem
+                var order = new Order
                 {
-                    ProductVariantId = variant.Id,
-                    ProductName = variant.Product.Name,
-                    Size = variant.Size,
-                    Color = variant.Color,
-                    UnitPrice = variant.Price,
-                    Quantity = item.Quantity,
-                    LineTotal = lineTotal
-                });
-            }
+                    OrderCode = GenerateOrderCode(),
+                    UserId = userId,
+                    ReceiverName = dto.ReceiverName,
+                    ReceiverPhone = dto.ReceiverPhone,
+                    ShippingAddress = dto.ShippingAddress,
+                    Note = dto.Note,
+                    PaymentMethod = dto.PaymentMethod,
+                    PaymentStatus = 0,
+                    OrderStatus = 0,
+                    DiscountAmount = 0
+                };
 
-            order.SubTotal = subTotal;
+                decimal subTotal = 0;
 
-            if (!string.IsNullOrWhiteSpace(dto.CouponCode))
-            {
-                var coupon = await _couponService.ValidateCouponAsync(dto.CouponCode.Trim(), subTotal);
+                foreach (var item in cartItems)
+                {
+                    var variant = item.ProductVariant;
+                    if (variant == null || variant.Product == null) continue;
+
+                    if (variant.StockQuantity < item.Quantity)
+                    {
+                        throw new Exception($"San pham {variant.Product.Name} (Size {variant.Size}) khong du so luong.");
+                    }
+
+                    variant.StockQuantity -= item.Quantity;
+
+                    var lineTotal = variant.Price * item.Quantity;
+                    subTotal += lineTotal;
+
+                    order.OrderItems.Add(new OrderItem
+                    {
+                        ProductVariantId = variant.Id,
+                        ProductName = variant.Product.Name,
+                        Size = variant.Size,
+                        Color = variant.Color,
+                        UnitPrice = variant.Price,
+                        Quantity = item.Quantity,
+                        LineTotal = lineTotal
+                    });
+                }
+
+                order.SubTotal = subTotal;
+
+                Coupon? coupon = null;
+
+                if (!string.IsNullOrWhiteSpace(dto.CouponCode))
+                {
+                    coupon = await _couponService.ValidateCouponAsync(dto.CouponCode.Trim(), subTotal, userId);
+                    if (coupon != null)
+                    {
+                        order.DiscountAmount = CalculateDiscount(coupon, subTotal);
+                    }
+                }
+
+                order.TotalAmount = subTotal - order.DiscountAmount;
+
+                _context.Orders.Add(order);
+                _context.CartItems.RemoveRange(cartItems);
+                await _context.SaveChangesAsync();
+
                 if (coupon != null)
                 {
-                    order.DiscountAmount = CalculateDiscount(coupon, subTotal);
-                    coupon.UsedCount += 1;
+                    var recorded = await _couponService.RecordCouponUsageAsync(coupon.Id, userId, order.Id);
+                    if (!recorded)
+                    {
+                        throw new Exception("Khong tim thay ma giam gia.");
+                    }
                 }
+
+                await transaction.CommitAsync();
+                return order;
             }
-
-            order.TotalAmount = subTotal - order.DiscountAmount;
-
-            _context.Orders.Add(order);
-            _context.CartItems.RemoveRange(cartItems);
-
-            await _context.SaveChangesAsync();
-            return order;
+            catch (DbUpdateException ex) when (IsDuplicateCouponUsage(ex))
+            {
+                await transaction.RollbackAsync();
+                throw new Exception("Ban da su dung ma giam gia nay truoc do.");
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         private static string GenerateOrderCode()
@@ -113,6 +139,12 @@ namespace backend.Services
             }
 
             return Math.Min(discount, subTotal);
+        }
+
+        private static bool IsDuplicateCouponUsage(DbUpdateException exception)
+        {
+            var message = exception.InnerException?.Message ?? exception.Message;
+            return message.Contains("IX_CouponUsages_CouponId_UserId", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

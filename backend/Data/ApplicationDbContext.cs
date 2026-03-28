@@ -1,5 +1,5 @@
-using Microsoft.EntityFrameworkCore;
 using backend.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace backend.Data
 {
@@ -18,14 +18,15 @@ namespace backend.Data
         public DbSet<OrderItem> OrderItems { get; set; }
         public DbSet<UserAddress> UserAddresses { get; set; }
         public DbSet<Coupon> Coupons { get; set; }
+        public DbSet<CouponUsage> CouponUsages { get; set; }
         public DbSet<Review> Reviews { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Đảm bảo Email là duy nhất trong hệ thống
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
                 .IsUnique();
+
             modelBuilder.Entity<Brand>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -33,6 +34,7 @@ namespace backend.Data
                 entity.Property(e => e.Slug).IsRequired().HasMaxLength(100);
                 entity.HasIndex(e => e.Slug).IsUnique();
             });
+
             modelBuilder.Entity<Category>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -40,11 +42,11 @@ namespace backend.Data
                 entity.Property(e => e.Slug).IsRequired().HasMaxLength(100);
                 entity.HasIndex(e => e.Slug).IsUnique();
                 entity.HasOne(d => d.Parent)
-                      .WithMany(p => p.Children)
-                      .HasForeignKey(d => d.ParentId)
-                      .OnDelete(DeleteBehavior.Restrict);
+                    .WithMany(p => p.Children)
+                    .HasForeignKey(d => d.ParentId)
+                    .OnDelete(DeleteBehavior.Restrict);
             });
-            // 2. Ràng buộc Product
+
             modelBuilder.Entity<Product>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -53,30 +55,29 @@ namespace backend.Data
                 entity.Property(e => e.BasePrice).HasColumnType("decimal(18,2)");
             });
 
-            // 3. Ràng buộc ProductVariant và quan hệ 1-N với Product
             modelBuilder.Entity<ProductVariant>(entity =>
             {
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.SKU).IsUnique();
                 entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
                 entity.HasOne(pv => pv.Product)
-                      .WithMany(p => p.Variants)
-                      .HasForeignKey(pv => pv.ProductId)
-                      .OnDelete(DeleteBehavior.Cascade);
+                    .WithMany(p => p.Variants)
+                    .HasForeignKey(pv => pv.ProductId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             modelBuilder.Entity<ProductImage>(entity =>
             {
                 entity.HasKey(e => e.Id);
                 entity.HasOne(pi => pi.Product)
-                      .WithMany(p => p.Images)
-                      .HasForeignKey(pi => pi.ProductId)
-                      .OnDelete(DeleteBehavior.Cascade);
+                    .WithMany(p => p.Images)
+                    .HasForeignKey(pi => pi.ProductId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
-            // Cấu hình bảng CartItem
+
             modelBuilder.Entity<CartItem>()
                 .HasOne(ci => ci.User)
-                .WithMany() // User không cần List<CartItem> cũng được cho nhẹ
+                .WithMany()
                 .HasForeignKey(ci => ci.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
@@ -86,7 +87,6 @@ namespace backend.Data
                 .HasForeignKey(ci => ci.ProductVariantId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Cấu hình Order
             modelBuilder.Entity<Order>()
                 .HasIndex(o => o.OrderCode)
                 .IsUnique();
@@ -97,24 +97,37 @@ namespace backend.Data
                 .HasForeignKey(oi => oi.OrderId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // 1. CẤU HÌNH BẢNG USER_ADDRESSES (Sổ địa chỉ)
-            // ==========================================
             modelBuilder.Entity<UserAddress>()
                 .HasOne(ua => ua.User)
                 .WithMany()
                 .HasForeignKey(ua => ua.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // ==========================================
-            // 2. CẤU HÌNH BẢNG COUPONS (Mã giảm giá)
-            // ==========================================
             modelBuilder.Entity<Coupon>()
                 .HasIndex(c => c.Code)
                 .IsUnique();
 
-            // ==========================================
-            // 3. CẤU HÌNH BẢNG REVIEWS (Đánh giá)
-            // ==========================================
+            modelBuilder.Entity<CouponUsage>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => new { e.CouponId, e.UserId }).IsUnique();
+
+                entity.HasOne(e => e.Coupon)
+                    .WithMany()
+                    .HasForeignKey(e => e.CouponId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Order)
+                    .WithMany()
+                    .HasForeignKey(e => e.OrderId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
             modelBuilder.Entity<Review>()
                 .HasOne(r => r.User)
                 .WithMany()
@@ -125,8 +138,7 @@ namespace backend.Data
                 .HasOne(r => r.Product)
                 .WithMany()
                 .HasForeignKey(r => r.ProductId)
-                .OnDelete(DeleteBehavior.Cascade); // Xóa đôi giày -> Xóa sạch bình luận của đôi giày đó
-
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Review>()
                 .HasIndex(r => new { r.UserId, r.ProductId })

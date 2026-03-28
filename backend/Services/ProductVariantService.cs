@@ -16,13 +16,17 @@ namespace backend.Services
 
         public async Task<ProductVariant?> AddVariantAsync(VariantAddDto dto)
         {
-            // Kiểm tra xem Product có tồn tại không
             var productExists = await _context.Products.AnyAsync(p => p.Id == dto.ProductId);
-            if (!productExists) throw new Exception("Không tìm thấy sản phẩm gốc.");
+            if (!productExists)
+            {
+                throw new Exception("Khong tim thay san pham goc.");
+            }
 
-            // Kiểm tra trùng mã SKU
             var skuExists = await _context.ProductVariants.AnyAsync(v => v.SKU == dto.SKU);
-            if (skuExists) throw new Exception("Mã SKU này đã tồn tại trong hệ thống.");
+            if (skuExists)
+            {
+                throw new Exception("Ma SKU nay da ton tai trong he thong.");
+            }
 
             var variant = new ProductVariant
             {
@@ -45,7 +49,16 @@ namespace backend.Services
             var variant = await _context.ProductVariants.FindAsync(id);
             if (variant == null) return false;
 
-            // Chỉ cho phép cập nhật Giá, Tồn kho và Trạng thái
+            var skuExists = await _context.ProductVariants
+                .AnyAsync(v => v.Id != id && v.SKU == dto.SKU);
+            if (skuExists)
+            {
+                throw new Exception("Ma SKU nay da ton tai trong he thong.");
+            }
+
+            variant.SKU = dto.SKU;
+            variant.Size = dto.Size;
+            variant.Color = dto.Color;
             variant.Price = dto.Price;
             variant.StockQuantity = dto.StockQuantity;
             variant.IsActive = dto.IsActive;
@@ -59,8 +72,6 @@ namespace backend.Services
             var variant = await _context.ProductVariants.FindAsync(id);
             if (variant == null) return false;
 
-            // Xóa biến thể. (Lưu ý: Nếu có hóa đơn đã mua biến thể này, 
-            // có thể sẽ bị lỗi constraint. Tốt nhất là dùng IsActive = false)
             _context.ProductVariants.Remove(variant);
             return await _context.SaveChangesAsync() > 0;
         }

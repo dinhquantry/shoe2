@@ -12,9 +12,9 @@ namespace backend.Controllers
     public class CategoriesController : ControllerBase
     {
         private readonly ICategoryService _categoryService;
+
         public CategoriesController(ICategoryService categoryService) => _categoryService = categoryService;
 
-        // Lấy dạng cây để hiện Menu
         [HttpGet("tree")]
         public async Task<IActionResult> GetTree()
         {
@@ -22,45 +22,56 @@ namespace backend.Controllers
             return Ok(new { success = true, data = tree });
         }
 
-        // THÊM MỚI 
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create(CategoryCreateDto dto)
         {
-            var category = new Category
+            try
             {
-                Name = dto.Name,
-                Slug = dto.Slug,
-                Description = dto.Description,
-                ParentId = dto.ParentId,
-                IsActive = dto.IsActive
-            };
+                var category = new Category
+                {
+                    Name = dto.Name,
+                    Slug = dto.Slug,
+                    Description = dto.Description,
+                    ParentId = dto.ParentId,
+                    IsActive = dto.IsActive
+                };
 
-            var created = await _categoryService.CreateAsync(category);
-            return Ok(new { success = true, data = created });
+                var created = await _categoryService.CreateAsync(category);
+                return Ok(new { success = true, data = created });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return this.BadRequestError(ex.Message, "category_invalid_parent");
+            }
         }
 
-        // CẬP NHẬT
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(int id, CategoryUpdateDto dto)
         {
-            var category = new Category
+            try
             {
-                Name = dto.Name,
-                Slug = dto.Slug,
-                Description = dto.Description,
-                ParentId = dto.ParentId,
-                IsActive = dto.IsActive
-            };
+                var category = new Category
+                {
+                    Name = dto.Name,
+                    Slug = dto.Slug,
+                    Description = dto.Description,
+                    ParentId = dto.ParentId,
+                    IsActive = dto.IsActive
+                };
 
-            var updated = await _categoryService.UpdateAsync(id, category);
-            if (!updated) return this.NotFoundError("Không tìm thấy danh mục", "category_not_found");
+                var updated = await _categoryService.UpdateAsync(id, category);
+                if (!updated) return this.NotFoundError("Khong tim thay danh muc", "category_not_found");
 
-            return Ok(new { success = true, message = "Cập nhật thành công" });
+                return Ok(new { success = true, message = "Cap nhat thanh cong" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return this.BadRequestError(ex.Message, "category_invalid_parent");
+            }
         }
 
-        // XÓA
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
@@ -68,8 +79,9 @@ namespace backend.Controllers
             try
             {
                 var deleted = await _categoryService.DeleteAsync(id);
-                if (!deleted) return this.NotFoundError("Không tìm thấy danh mục", "category_not_found");
-                return Ok(new { success = true, message = "Đã xóa" });
+                if (!deleted) return this.NotFoundError("Khong tim thay danh muc", "category_not_found");
+
+                return Ok(new { success = true, message = "Da xoa" });
             }
             catch (InvalidOperationException ex)
             {

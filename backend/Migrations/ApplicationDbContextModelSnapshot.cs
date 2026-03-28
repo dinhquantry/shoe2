@@ -326,7 +326,7 @@ namespace backend.Migrations
                     b.Property<bool>("IsMain")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<int>("ProductVariantId")
+                    b.Property<int>("ProductId")
                         .HasColumnType("int");
 
                     b.Property<int>("SortOrder")
@@ -334,7 +334,7 @@ namespace backend.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProductVariantId");
+                    b.HasIndex("ProductId");
 
                     b.ToTable("ProductImages");
                 });
@@ -584,13 +584,13 @@ namespace backend.Migrations
 
             modelBuilder.Entity("backend.Models.ProductImage", b =>
                 {
-                    b.HasOne("backend.Models.ProductVariant", "ProductVariant")
+                    b.HasOne("backend.Models.Product", "Product")
                         .WithMany("Images")
-                        .HasForeignKey("ProductVariantId")
+                        .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("ProductVariant");
+                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("backend.Models.ProductVariant", b =>
@@ -646,12 +646,9 @@ namespace backend.Migrations
 
             modelBuilder.Entity("backend.Models.Product", b =>
                 {
-                    b.Navigation("Variants");
-                });
-
-            modelBuilder.Entity("backend.Models.ProductVariant", b =>
-                {
                     b.Navigation("Images");
+
+                    b.Navigation("Variants");
                 });
 #pragma warning restore 612, 618
         }

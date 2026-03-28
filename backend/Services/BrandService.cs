@@ -1,37 +1,48 @@
+using backend.Data;
 using backend.Models;
-using backend.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 namespace backend.Services
 {
     public class BrandService : IBrandService
     {
-        private readonly IGenericRepository<Brand> _repo;
-        public BrandService(IGenericRepository<Brand> repo) => _repo = repo;
-        public async Task<IEnumerable<Brand>> GetBrandsAsync() => await _repo.GetAllAsync();
-        public async Task<Brand?> GetBrandByIdAsync(int id) => await _repo.GetByIdAsync(id);
+        private readonly ApplicationDbContext _context;
+
+        public BrandService(ApplicationDbContext context) => _context = context;
+
+        public async Task<IEnumerable<Brand>> GetBrandsAsync()
+            => await _context.Brands.AsNoTracking().ToListAsync();
+
+        public async Task<Brand?> GetBrandByIdAsync(int id)
+            => await _context.Brands.AsNoTracking().FirstOrDefaultAsync(b => b.Id == id);
+
         public async Task<Brand> CreateBrandAsync(Brand brand)
         {
-            await _repo.AddAsync(brand);
-            await _repo.SaveChangesAsync();
+            await _context.Brands.AddAsync(brand);
+            await _context.SaveChangesAsync();
             return brand;
         }
+
         public async Task<bool> UpdateBrandAsync(int id, Brand brand)
         {
-            var existing = await _repo.GetByIdAsync(id);
+            var existing = await _context.Brands.FindAsync(id);
             if (existing == null) return false;
+
             existing.Name = brand.Name;
             existing.Slug = brand.Slug;
             existing.Description = brand.Description;
             existing.IsActive = brand.IsActive;
-            _repo.Update(existing);
-            return await _repo.SaveChangesAsync();
+
+            return await _context.SaveChangesAsync() > 0;
         }
+
         public async Task<bool> DeleteBrandAsync(int id)
         {
-            var brand = await _repo.GetByIdAsync(id);
+            var brand = await _context.Brands.FindAsync(id);
             if (brand == null) return false;
-            _repo.Delete(brand);
-            return await _repo.SaveChangesAsync();
+
+            _context.Brands.Remove(brand);
+            return await _context.SaveChangesAsync() > 0;
         }
     }
 }

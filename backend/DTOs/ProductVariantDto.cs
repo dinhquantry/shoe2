@@ -24,6 +24,12 @@ namespace backend.DTOs
     // Dùng khi nhân viên kho muốn cập nhật giá hoặc số lượng
     public class VariantUpdateDto
     {
+        [Required]
+        public string SKU { get; set; } = string.Empty;
+        [Required]
+        public string Size { get; set; } = string.Empty;
+        [Required]
+        public string Color { get; set; } = string.Empty;
         public decimal Price { get; set; }
         public int StockQuantity { get; set; }
         public bool IsActive { get; set; }

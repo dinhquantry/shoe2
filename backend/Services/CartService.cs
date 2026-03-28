@@ -18,7 +18,8 @@ namespace backend.Services
                 .Include(i => i.ProductVariant)
                     .ThenInclude(pv => pv!.Product)
                 .Include(i => i.ProductVariant)
-                    .ThenInclude(pv => pv!.Images)
+                    .ThenInclude(pv => pv!.Product!)
+                        .ThenInclude(p => p.Images)
                 .Where(i => i.UserId == userId)
                 .ToListAsync();
 
@@ -30,8 +31,8 @@ namespace backend.Services
                 if (variant == null || variant.Product == null) continue;
 
                 // Lấy ảnh đại diện (IsMain = true), nếu không có thì lấy ảnh đầu tiên
-                var mainImage = variant.Images.FirstOrDefault(i => i.IsMain)?.ImageUrl 
-                                ?? variant.Images.FirstOrDefault()?.ImageUrl ?? "";
+                var mainImage = variant.Product.Images.FirstOrDefault(i => i.IsMain)?.ImageUrl
+                                ?? variant.Product.Images.FirstOrDefault()?.ImageUrl ?? "";
 
                 var itemDto = new CartItemViewDto
                 {

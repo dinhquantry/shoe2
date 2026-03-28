@@ -5,10 +5,10 @@ import type { AxiosError } from "axios";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import Cookies from "js-cookie";
 import { Loader2 } from "lucide-react";
 
 import axiosClient from "@/lib/axios";
+import { useAuth } from "@/app/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -18,7 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { ApiErrorResponse, AuthLoginResponse } from "@/app/types";
+import type { ApiErrorResponse, AuthLoginResponse, AuthUser } from "@/app/types";
 
 const loginSchema = z.object({
   email: z.string().email("Email khong dung dinh dang"),
@@ -28,14 +28,19 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 type JwtPayload = {
+  email?: string;
   role?: string;
+  fullName?: string;
   ["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"]?: string;
+  ["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"]?: string;
 };
 
-function getRoleFromToken(token: string) {
+function parseAuthUserFromToken(token: string): AuthUser {
   try {
     const payload = token.split(".")[1];
-    if (!payload) return "User";
+    if (!payload) {
+      return { fullName: "User", email: "", role: "User" };
+    }
 
     const normalizedPayload = payload.replace(/-/g, "+").replace(/_/g, "/");
     const decodedPayload = atob(
@@ -43,19 +48,31 @@ function getRoleFromToken(token: string) {
     );
     const parsedPayload = JSON.parse(decodedPayload) as JwtPayload;
 
-    return (
+    const role =
       parsedPayload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] ??
       parsedPayload.role ??
-      "User"
-    );
+      "User";
+
+    const fullName =
+      parsedPayload.fullName ??
+      parsedPayload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] ??
+      parsedPayload.email ??
+      "User";
+
+    return {
+      email: parsedPayload.email ?? "",
+      fullName,
+      role,
+    };
   } catch {
-    return "User";
+    return { fullName: "User", email: "", role: "User" };
   }
 }
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState("");
+  const setAuth = useAuth((state) => state.setAuth);
 
   const {
     register,
@@ -80,13 +97,10 @@ export default function LoginPage() {
         return;
       }
 
-      const role = getRoleFromToken(response.token);
+      const authUser = parseAuthUserFromToken(response.token);
+      setAuth(authUser, response.token);
 
-      localStorage.setItem("token", response.token);
-      Cookies.set("token", response.token, { expires: 7 });
-      Cookies.set("role", role, { expires: 7 });
-
-      window.location.href = role === "Admin" ? "/admin" : "/";
+      window.location.href = authUser.role === "Admin" ? "/admin" : "/";
     } catch (error: unknown) {
       const apiError = error as AxiosError<ApiErrorResponse>;
       setLoginError(

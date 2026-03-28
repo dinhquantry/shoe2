@@ -1,43 +1,37 @@
 using backend.Data;
 using backend.DTOs;
 using backend.Models;
-using backend.Repositories;
 using Microsoft.EntityFrameworkCore;
 
 namespace backend.Services
 {
     public class CategoryService : ICategoryService
     {
-        private readonly IGenericRepository<Category> _repo;
-        private readonly ApplicationDbContext _context; // Cần dùng để xử lý Include đệ quy
+        private readonly ApplicationDbContext _context;
 
-        public CategoryService(IGenericRepository<Category> repo, ApplicationDbContext context)
+        public CategoryService(ApplicationDbContext context)
         {
-            _repo = repo;
             _context = context;
         }
 
-        // Lấy danh sách phẳng (dùng cho Admin quản lý)
         public async Task<IEnumerable<Category>> GetAllAsync()
-            => await _repo.GetAllAsync();
+            => await _context.Categories.AsNoTracking().ToListAsync();
 
-        // Lấy danh sách chi tiết theo ID
         public async Task<Category?> GetByIdAsync(int id)
-            => await _repo.GetByIdAsync(id);
+            => await _context.Categories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
 
-        // Lấy cấu trúc cây (dùng cho Menu hiển thị)
         public async Task<IEnumerable<CategoryTreeDto>> GetTreeAsync()
         {
             var allCategories = await _context.Categories
                 .AsNoTracking()
                 .ToListAsync();
+
             var categoriesByParent = allCategories
                 .GroupBy(c => c.ParentId ?? 0)
                 .ToDictionary(g => g.Key, g => g.ToList());
 
             CategoryTreeDto BuildNode(Category category)
             {
-                // Tìm các danh mục con có ParentId trùng với Id của danh mục hiện tại
                 var children = categoriesByParent.TryGetValue(category.Id, out var childCategories)
                     ? childCategories.Select(BuildNode).ToList()
                     : new List<CategoryTreeDto>();
@@ -52,7 +46,6 @@ namespace backend.Services
                 };
             }
 
-            // LẤY DANH MỤC GỐC: Ta tìm ở Key = 0 thay vì null
             return categoriesByParent.TryGetValue(0, out var rootCategories)
                 ? rootCategories.Select(BuildNode)
                 : Enumerable.Empty<CategoryTreeDto>();
@@ -60,37 +53,65 @@ namespace backend.Services
 
         public async Task<Category> CreateAsync(Category category)
         {
-            await _repo.AddAsync(category);
-            await _repo.SaveChangesAsync();
+            if (category.ParentId.HasValue)
+            {
+                var parentExists = await _context.Categories
+                    .AnyAsync(c => c.Id == category.ParentId.Value);
+
+                if (!parentExists)
+                {
+                    throw new InvalidOperationException("Danh muc cha khong ton tai.");
+                }
+            }
+
+            await _context.Categories.AddAsync(category);
+            await _context.SaveChangesAsync();
             return category;
         }
 
         public async Task<bool> UpdateAsync(int id, Category category)
         {
-            var existing = await _repo.GetByIdAsync(id);
+            var existing = await _context.Categories.FindAsync(id);
             if (existing == null) return false;
+
+            if (category.ParentId == id)
+            {
+                throw new InvalidOperationException("Danh muc khong the tu lam danh muc cha cua chinh no.");
+            }
+
+            if (category.ParentId.HasValue)
+            {
+                var parentExists = await _context.Categories
+                    .AnyAsync(c => c.Id == category.ParentId.Value);
+
+                if (!parentExists)
+                {
+                    throw new InvalidOperationException("Danh muc cha khong ton tai.");
+                }
+            }
 
             existing.Name = category.Name;
             existing.Slug = category.Slug;
             existing.Description = category.Description;
-            existing.ParentId = category.ParentId; // Hỗ trợ đổi danh mục cha 
+            existing.ParentId = category.ParentId;
             existing.IsActive = category.IsActive;
 
-            _repo.Update(existing);
-            return await _repo.SaveChangesAsync();
+            return await _context.SaveChangesAsync() > 0;
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
-            var category = await _repo.GetByIdAsync(id);
+            var category = await _context.Categories.FindAsync(id);
             if (category == null) return false;
 
-            // Kiểm tra xem có danh mục con không trước khi xóa (Ràng buộc logic)
             var hasChildren = await _context.Categories.AnyAsync(c => c.ParentId == id);
-            if (hasChildren) throw new InvalidOperationException("Không thể xóa danh mục đang có danh mục con.");
+            if (hasChildren)
+            {
+                throw new InvalidOperationException("Khong the xoa danh muc dang co danh muc con.");
+            }
 
-            _repo.Delete(category);
-            return await _repo.SaveChangesAsync();
+            _context.Categories.Remove(category);
+            return await _context.SaveChangesAsync() > 0;
         }
     }
 }

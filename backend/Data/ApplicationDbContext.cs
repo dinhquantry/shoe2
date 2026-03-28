@@ -68,9 +68,9 @@ namespace backend.Data
             modelBuilder.Entity<ProductImage>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.HasOne(pi => pi.ProductVariant)
-                      .WithMany(pv => pv.Images)
-                      .HasForeignKey(pi => pi.ProductVariantId)
+                entity.HasOne(pi => pi.Product)
+                      .WithMany(p => p.Images)
+                      .HasForeignKey(pi => pi.ProductId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
             // Cấu hình bảng CartItem

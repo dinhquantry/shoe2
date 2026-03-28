@@ -6,27 +6,32 @@ namespace backend.DTOs
     {
         [Required]
         public string Name { get; set; } = string.Empty;
+
         public string? Description { get; set; }
+
         public decimal BasePrice { get; set; }
+
         public int BrandId { get; set; }
+
         public int CategoryId { get; set; }
 
-        // Danh sách các biến thể gửi kèm
         [Required]
-        public List<VariantCreateDto> Variants { get; set; } = new List<VariantCreateDto>();
+        public List<VariantCreateDto> Variants { get; set; } = new();
     }
-    // DTO dùng để trả về dữ liệu cho Frontend hiển thị
+
     public class ProductDto
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Slug { get; set; } = string.Empty;
+        public string? Description { get; set; }
         public decimal BasePrice { get; set; }
-        public string BrandName { get; set; } = string.Empty; 
+        public int BrandId { get; set; }
+        public string BrandName { get; set; } = string.Empty;
+        public int CategoryId { get; set; }
         public string CategoryName { get; set; } = string.Empty;
-        
-        // Trả về danh sách biến thể
-        public List<VariantDto> Variants { get; set; } = new List<VariantDto>();
+        public bool IsActive { get; set; }
+        public List<VariantDto> Variants { get; set; } = new();
     }
 
     public class VariantDto
@@ -37,9 +42,9 @@ namespace backend.DTOs
         public string Color { get; set; } = string.Empty;
         public decimal Price { get; set; }
         public int StockQuantity { get; set; }
+        public bool IsActive { get; set; }
     }
 
-    // DTO dùng để Cập nhật thông tin cơ bản của Sản phẩm
     public class ProductUpdateDto
     {
         public string Name { get; set; } = string.Empty;
@@ -49,5 +54,4 @@ namespace backend.DTOs
         public int CategoryId { get; set; }
         public bool IsActive { get; set; }
     }
-   
 }

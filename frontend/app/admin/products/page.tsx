@@ -20,6 +20,7 @@ import type {
   ProductListItem,
   ProductListResponse,
 } from "@/app/types";
+import { formatCurrency } from "@/lib/utils";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<ProductListItem[]>([]);
@@ -32,7 +33,7 @@ export default function ProductsPage() {
       );
       setProducts(response.data.items);
     } catch (error) {
-      console.error("Loi lay danh sach san pham:", error);
+      console.error("Lỗi lấy dữ liệu", error);
     }
   }, []);
 
@@ -47,12 +48,12 @@ export default function ProductsPage() {
   }, [fetchProducts, searchTerm]);
 
   const handleDelete = async (id: number) => {
-    if (window.confirm("Ban co chac chan muon xoa san pham nay?")) {
+    if (window.confirm("Bạn muốn xóa sản phẩm này?")) {
       try {
         await axiosClient.delete(`/Products/${id}`);
         await fetchProducts(searchTerm);
       } catch {
-        alert("Co loi khi xoa san pham!");
+        alert("Có lỗi khi xóa sản phẩm");
       }
     }
   };
@@ -61,15 +62,13 @@ export default function ProductsPage() {
     <div className="space-y-6">
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">San pham</h2>
-          <p className="text-sm text-zinc-500">
-            Quan ly kho giay, bien the va gia ban.
-          </p>
+          <h2 className="text-2xl font-bold tracking-tight">Quản lý giày</h2>
+          
         </div>
 
         <Link href="/admin/products/create">
           <Button className="bg-zinc-900">
-            <Plus className="mr-2 h-4 w-4" /> Them san pham
+            <Plus className="mr-2 h-4 w-4" />Thêm giày
           </Button>
         </Link>
       </div>
@@ -78,7 +77,7 @@ export default function ProductsPage() {
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
           <Input
-            placeholder="Tim theo ten san pham..."
+            placeholder="tìm kiếm giày ..."
             className="pl-9"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
@@ -90,10 +89,10 @@ export default function ProductsPage() {
         <Table>
           <TableHeader className="bg-zinc-50">
             <TableRow>
-              <TableHead>Ten san pham</TableHead>
-              <TableHead>Gia co ban</TableHead>
-              <TableHead>Trang thai</TableHead>
-              <TableHead className="text-right">Thao tac</TableHead>
+              <TableHead>Tên giày</TableHead>
+              <TableHead>Giá</TableHead>
+              <TableHead>Trạng thái</TableHead>
+              <TableHead className="text-right">Thao tác</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -112,13 +111,13 @@ export default function ProductsPage() {
                     </div>
                   </TableCell>
                   <TableCell className="font-medium text-zinc-600">
-                    ${product.basePrice?.toFixed(2) || "0.00"}
+                    {formatCurrency(product.basePrice)}
                   </TableCell>
                   <TableCell>
                     <Badge
                       variant={product.isActive === false ? "secondary" : "default"}
                     >
-                      {product.isActive === false ? "Ngung ban" : "Dang ban"}
+                      {product.isActive === false ? "Ngừng bán" : "Đang bán"}
                     </Badge>
                   </TableCell>
                   <TableCell className="space-x-2 text-right">
@@ -140,7 +139,7 @@ export default function ProductsPage() {
             ) : (
               <TableRow>
                 <TableCell colSpan={5} className="py-10 text-center text-zinc-500">
-                  Chua co san pham nao. Hay them san pham dau tien!
+                  Kho đang rỗng
                 </TableCell>
               </TableRow>
             )}

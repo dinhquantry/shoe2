@@ -28,7 +28,7 @@ export default function BrandsPage() {
       );
       setBrands(response.data);
     } catch (error) {
-      console.error("Loi lay du lieu", error);
+      console.error("Lỗi lấy dữ liệu", error);
     }
   };
 
@@ -44,7 +44,7 @@ export default function BrandsPage() {
           setBrands(response.data);
         }
       } catch (error) {
-        console.error("Loi lay du lieu", error);
+        console.error("Lỗi lấy dữ liệu", error);
       }
     };
 
@@ -66,12 +66,12 @@ export default function BrandsPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (window.confirm("Ban co chac chan muon xoa thuong hieu nay?")) {
+    if (window.confirm("Bạn có chắc muốn xóa danh mục này?")) {
       try {
         await axiosClient.delete(`/Brands/${id}`);
         await fetchBrands();
       } catch {
-        alert("Loi khi xoa!");
+        alert("Lỗi khi xóa !");
       }
     }
   };
@@ -79,9 +79,9 @@ export default function BrandsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Thuong hieu</h2>
+        <h2 className="text-2xl font-bold">Thương hiệu</h2>
         <Button onClick={handleAdd} className="bg-zinc-900">
-          <Plus className="mr-2 h-4 w-4" /> Them Brand
+          <Plus className="mr-2 h-4 w-4" /> Thêm thương hiệu
         </Button>
       </div>
 
@@ -89,10 +89,10 @@ export default function BrandsPage() {
         <Table>
           <TableHeader className="bg-zinc-50">
             <TableRow>
-              <TableHead>Ten thuong hieu</TableHead>
+              <TableHead>Tên thương hiệu</TableHead>
               <TableHead>Slug</TableHead>
-              <TableHead>Trang thai</TableHead>
-              <TableHead className="text-right">Thao tac</TableHead>
+              <TableHead>Trạng thái</TableHead>
+              <TableHead className="text-right">Thao tác</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -103,7 +103,7 @@ export default function BrandsPage() {
                   <TableCell className="text-zinc-500">{brand.slug}</TableCell>
                   <TableCell>
                     <Badge variant={brand.isActive ? "default" : "secondary"}>
-                      {brand.isActive ? "Hoat dong" : "An"}
+                      {brand.isActive ? "Hoạt động" : "Ẩn"}
                     </Badge>
                   </TableCell>
                   <TableCell className="space-x-2 text-right">
@@ -127,14 +127,13 @@ export default function BrandsPage() {
             ) : (
               <TableRow>
                 <TableCell colSpan={4} className="py-6 text-center text-zinc-500">
-                  Chua co du lieu
+                  Chưa có dữ liệu
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </div>
-
       <BrandDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}

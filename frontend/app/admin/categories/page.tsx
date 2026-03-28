@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState,Fragment } from "react";
 import axiosClient from "@/lib/axios";
 import {
   Table,
@@ -81,12 +81,12 @@ export default function CategoriesPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (window.confirm("Xoa danh muc nay va tiep tuc?")) {
+    if (window.confirm("Xóa danh mục này và tiếp tục?")) {
       try {
         await axiosClient.delete(`/Categories/${id}`);
         await fetchCategories();
       } catch {
-        alert("Loi khi xoa!");
+        alert("Lỗi khi xóa!");
       }
     }
   };
@@ -104,7 +104,7 @@ export default function CategoriesPage() {
     const isExpanded = expandedRows.includes(category.id);
 
     return (
-      <>
+      <Fragment key={category.id}>
         <TableRow className="hover:bg-zinc-50/50">
           <TableCell className="font-medium">
             <div
@@ -132,7 +132,7 @@ export default function CategoriesPage() {
           <TableCell className="text-zinc-500">{category.slug}</TableCell>
           <TableCell>
             <Badge variant={category.isActive ? "default" : "secondary"}>
-              {category.isActive ? "Hoat dong" : "An"}
+              {category.isActive ? "Hoạt động" : "Ẩn"}
             </Badge>
           </TableCell>
           <TableCell className="space-x-2 text-right">
@@ -157,14 +157,14 @@ export default function CategoriesPage() {
           category.children.map((child) =>
             renderCategoryRow({ ...child, parentId: category.id }, depth + 1)
           )}
-      </>
+      </Fragment>
     );
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">Danh muc san pham</h2>
+        <h2 className="text-2xl font-bold">Danh mục sản phẩm</h2>
         <Button
           onClick={() => {
             setSelectedCategory(null);
@@ -172,7 +172,7 @@ export default function CategoriesPage() {
           }}
           className="bg-zinc-900"
         >
-          <Plus className="mr-2 h-4 w-4" /> Tao danh muc
+          <Plus className="mr-2 h-4 w-4" />  Tạo danh mục
         </Button>
       </div>
 
@@ -180,10 +180,10 @@ export default function CategoriesPage() {
         <Table>
           <TableHeader className="bg-zinc-50">
             <TableRow>
-              <TableHead className="w-[40%]">Ten danh muc</TableHead>
+              <TableHead className="w-[40%]">Tên danh mục</TableHead>
               <TableHead>Slug</TableHead>
-              <TableHead>Trang thai</TableHead>
-              <TableHead className="text-right">Thao tac</TableHead>
+              <TableHead>Trạng thái</TableHead>
+              <TableHead className="text-right">Thao tác</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -192,14 +192,13 @@ export default function CategoriesPage() {
             ) : (
               <TableRow>
                 <TableCell colSpan={4} className="py-6 text-center">
-                  Chua co du lieu
+                  Chưa có dữ liệu
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
       </div>
-
       <CategoryDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}

@@ -20,8 +20,8 @@ import { generateSlug } from "@/lib/utils";
 import type { Brand } from "@/app/types";
 
 const brandSchema = z.object({
-  name: z.string().min(1, "Ten khong duoc de trong"),
-  slug: z.string().min(1, "Slug khong duoc de trong"),
+  name: z.string().min(1, "Tên không được để trống"),
+  slug: z.string().min(1, "Slug không được để trống"),
   description: z.string().optional(),
   isActive: z.boolean(),
 });
@@ -81,7 +81,7 @@ export function BrandDialog({
       await onSuccess();
       onOpenChange(false);
     } catch (error) {
-      alert("Co loi xay ra khi luu thuong hieu!");
+      alert("Có lỗi khi lấy dữ liệu!");
       console.error(error);
     }
   };
@@ -91,12 +91,12 @@ export function BrandDialog({
       <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>
-            {brand ? "Chinh sua thuong hieu" : "Them thuong hieu moi"}
+            {brand ? "Chỉnh sửa thương hiệu" : "Thêm thương hiệu mới"}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <Label>Ten thuong hieu *</Label>
+            <Label>Tên thương hiệu *</Label>
             <Input {...register("name")} placeholder="VD: Nike, Adidas..." />
           </div>
           <div className="space-y-2">
@@ -104,14 +104,14 @@ export function BrandDialog({
             <Input {...register("slug")} placeholder="nike, adidas..." />
           </div>
           <div className="space-y-2">
-            <Label>Mo ta</Label>
+            <Label>Mô tả</Label>
             <Input
               {...register("description")}
-              placeholder="Mo ta ngan..."
+              placeholder="Mô tả 1 chút..."
             />
           </div>
           <div className="flex items-center justify-between pt-2">
-            <Label>Trang thai hoat dong</Label>
+            <Label>Trạng thái hoạt động</Label>
             <Switch
               checked={isActiveValue}
               onCheckedChange={(value: boolean) =>
@@ -125,10 +125,10 @@ export function BrandDialog({
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              Huy
+              Hủy
             </Button>
             <Button type="submit" className="bg-blue-600">
-              {brand ? "Luu thay doi" : "Tao moi"}
+              {brand ? "Lưu thay đổi" : "Tạo mới"}
             </Button>
           </DialogFooter>
         </form>

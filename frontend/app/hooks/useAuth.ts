@@ -1,8 +1,7 @@
-// hooks/useAuth.ts
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import Cookies from 'js-cookie';
-import type { AuthUser } from '@/app/types';
+import Cookies from "js-cookie";
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import type { AuthUser } from "@/app/types";
 
 interface AuthState {
   user: AuthUser | null;
@@ -15,19 +14,19 @@ export const useAuth = create<AuthState>()(
     (set) => ({
       user: null,
       setAuth: (user, token) => {
-        Cookies.set('token', token, { expires: 7 });
-  //  Lưu trực tiếp giá trị role (ví dụ: "Admin") vào Cookie
-        Cookies.set('role', user.role || "User", { expires: 7 }); 
+        localStorage.setItem("token", token);
+        Cookies.set("token", token, { expires: 7 });
+        Cookies.set("role", user.role || "User", { expires: 7 });
         set({ user });
-},
+      },
       logout: () => {
-        Cookies.remove('token');
-        Cookies.remove('role');
-        localStorage.removeItem('token');
+        Cookies.remove("token");
+        Cookies.remove("role");
+        localStorage.removeItem("token");
         set({ user: null });
         window.location.href = "/login";
       },
     }),
-    { name: 'auth-storage' }
+    { name: "auth-storage" }
   )
 );

@@ -53,17 +53,21 @@ export interface ProductVariantSummary {
   color: string;
   price: number;
   stockQuantity: number;
+  isActive: boolean;
 }
 
 export interface ProductListItem {
   id: number;
   name: string;
   slug: string;
+  description?: string | null;
   basePrice: number;
+  brandId: number;
   brandName: string;
+  categoryId: number;
   categoryName: string;
   variants: ProductVariantSummary[];
-  isActive?: boolean;
+  isActive: boolean;
 }
 
 export interface ProductListResponse {
@@ -75,3 +79,5 @@ export interface ProductListResponse {
     totalPages: number;
   };
 }
+
+export type ProductDetail = ProductListItem;

@@ -7,7 +7,7 @@ namespace backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin")] 
+    [Authorize(Roles = "Admin")]
     public class ProductVariantsController : ControllerBase
     {
         private readonly IProductVariantService _variantService;
@@ -23,7 +23,7 @@ namespace backend.Controllers
             try
             {
                 var result = await _variantService.AddVariantAsync(dto);
-                return Ok(new { success = true, message = "Thêm biến thể thành công", data = result });
+                return Ok(new { success = true, message = "Them bien the thanh cong", data = result });
             }
             catch (Exception ex)
             {
@@ -34,19 +34,32 @@ namespace backend.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateVariant(int id, [FromBody] VariantUpdateDto dto)
         {
-            var result = await _variantService.UpdateVariantAsync(id, dto);
-            if (!result) return NotFound(new { success = false, message = "Không tìm thấy biến thể" });
+            try
+            {
+                var result = await _variantService.UpdateVariantAsync(id, dto);
+                if (!result)
+                {
+                    return NotFound(new { success = false, message = "Khong tim thay bien the" });
+                }
 
-            return Ok(new { success = true, message = "Cập nhật tồn kho/giá thành công" });
+                return Ok(new { success = true, message = "Cap nhat bien the thanh cong" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteVariant(int id)
         {
             var result = await _variantService.DeleteVariantAsync(id);
-            if (!result) return NotFound(new { success = false, message = "Không tìm thấy biến thể" });
+            if (!result)
+            {
+                return NotFound(new { success = false, message = "Khong tim thay bien the" });
+            }
 
-            return Ok(new { success = true, message = "Đã xóa biến thể" });
+            return Ok(new { success = true, message = "Da xoa bien the" });
         }
     }
 }

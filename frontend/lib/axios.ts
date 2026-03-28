@@ -18,8 +18,10 @@ type ApiClient = Omit<AxiosInstance, "get" | "post" | "put" | "delete"> & {
   ): Promise<T>;
 };
 
+export const API_BASE_URL = "http://localhost:5209";
+
 const axiosClient = axios.create({
-  baseURL: "http://localhost:5209/api", 
+  baseURL: `${API_BASE_URL}/api`,
   headers: {
     "Content-Type": "application/json",
   },

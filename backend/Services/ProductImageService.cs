@@ -1,85 +1,187 @@
 using backend.Data;
 using backend.DTOs;
 using backend.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace backend.Services
 {
     public class ProductImageService : IProductImageService
     {
+        private const int MaxImagesPerProduct = 4;
         private readonly ApplicationDbContext _context;
-        private readonly IWebHostEnvironment _env; // Dùng để lấy đường dẫn thư mục gốc của Server
-
+        private readonly IWebHostEnvironment _env;
         public ProductImageService(ApplicationDbContext context, IWebHostEnvironment env)
         {
             _context = context;
             _env = env;
         }
 
-       public async Task<List<ProductImage>> UploadImagesAsync(MultipleImageUploadDto dto)
-{
-    var variantExists = await _context.ProductVariants.FindAsync(dto.ProductVariantId);
-    if (variantExists == null) throw new Exception("Không tìm thấy biến thể sản phẩm.");
-
-    var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
-    string uploadsFolder = Path.Combine(_env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), "uploads", "products");
-    if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
-
-    var uploadedImages = new List<ProductImage>();
-
-    // VÒNG LẶP XỬ LÝ TỪNG FILE
-    foreach (var file in dto.Files!)
-    {
-        if (file.Length == 0) continue; // Bỏ qua file rỗng
-        if (file.Length > 5 * 1024 * 1024) throw new Exception($"File {file.FileName} vượt quá 5MB.");
-
-        var extension = Path.GetExtension(file.FileName).ToLower();
-        if (!allowedExtensions.Contains(extension))
-            throw new Exception($"File {file.FileName} không đúng định dạng ảnh.");
-
-        string uniqueFileName = Guid.NewGuid().ToString() + extension;
-        string filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-        using (var fileStream = new FileStream(filePath, FileMode.Create))
+        private static ProductImageDto MapToDto(ProductImage image) => new()
         {
-            await file.CopyToAsync(fileStream);
+            Id = image.Id,
+            ImageUrl = image.ImageUrl,
+            IsMain = image.IsMain
+        };
+
+        public async Task<List<ProductImageDto>> GetImagesByProductIdAsync(int productId)
+        {
+            return await _context.ProductImages
+                .AsNoTracking()
+                .Where(i => i.ProductId == productId)
+                .OrderByDescending(i => i.IsMain)
+                .ThenBy(i => i.SortOrder)
+                .ThenBy(i => i.Id)
+                .Select(i => new ProductImageDto
+                {
+                    Id = i.Id,
+                    ImageUrl = i.ImageUrl,
+                    IsMain = i.IsMain
+                })
+                .ToListAsync();
         }
 
-        // Tạo Entity ảnh
-        uploadedImages.Add(new ProductImage
+        public async Task<List<ProductImageDto>> UploadImagesAsync(MultipleImageUploadDto dto)
         {
-            ProductVariantId = dto.ProductVariantId,
-            ImageUrl = $"/uploads/products/{uniqueFileName}",
-            // Mặc định ảnh đầu tiên trong list tải lên sẽ là ảnh chính (nếu chưa có ảnh nào)
-            IsMain = dto.Files.IndexOf(file) == 0, 
-            SortOrder = 0
-        });
-    }
+            if (dto.Files == null || !dto.Files.Any())
+            {
+                throw new Exception("Khong co file anh nao duoc gui len.");
+            }
 
-    // LƯU TOÀN BỘ VÀO DATABASE TRONG 1 LẦN GỌI
-    if (uploadedImages.Any())
-    {
-        await _context.ProductImages.AddRangeAsync(uploadedImages);
-        await _context.SaveChangesAsync();
-    }
+            var productExists = await _context.Products.FindAsync(dto.ProductId);
+            if (productExists == null)
+            {
+                throw new Exception("Khong tim thay san pham.");
+            }
 
-    return uploadedImages;
-}
+            var existingImages = await _context.ProductImages
+                .Where(i => i.ProductId == dto.ProductId)
+                .OrderByDescending(i => i.IsMain)
+                .ThenBy(i => i.SortOrder)
+                .ThenBy(i => i.Id)
+                .ToListAsync();
+
+            var validFiles = dto.Files.Where(file => file.Length > 0).ToList();
+            if (!validFiles.Any())
+            {
+                throw new Exception("Tat ca file anh deu rong.");
+            }
+
+            if (existingImages.Count + validFiles.Count > MaxImagesPerProduct)
+            {
+                throw new Exception($"Moi san pham chi duoc toi da {MaxImagesPerProduct} anh.");
+            }
+
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
+            var uploadsFolder = Path.Combine(
+                _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"),
+                "uploads",
+                "products");
+
+            if (!Directory.Exists(uploadsFolder))
+            {
+                Directory.CreateDirectory(uploadsFolder);
+            }
+
+            var nextSortOrder = existingImages.Any() ? existingImages.Max(i => i.SortOrder) + 1 : 0;
+            var hasMainImage = existingImages.Any(i => i.IsMain);
+            var uploadedImages = new List<ProductImage>();
+
+            foreach (var file in validFiles)
+            {
+                if (file.Length > 5 * 1024 * 1024)
+                {
+                    throw new Exception($"File {file.FileName} vuot qua 5MB.");
+                }
+
+                var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                if (!allowedExtensions.Contains(extension))
+                {
+                    throw new Exception($"File {file.FileName} khong dung dinh dang anh.");
+                }
+
+                var uniqueFileName = $"{Guid.NewGuid():N}{extension}";
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                await using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(fileStream);
+                }
+
+                var isMain = !hasMainImage && !uploadedImages.Any();
+                uploadedImages.Add(new ProductImage
+                {
+                    ProductId = dto.ProductId,
+                    ImageUrl = $"/uploads/products/{uniqueFileName}",
+                    IsMain = isMain,
+                    SortOrder = nextSortOrder++
+                });
+            }
+
+            if (uploadedImages.Any())
+            {
+                await _context.ProductImages.AddRangeAsync(uploadedImages);
+                await _context.SaveChangesAsync();
+            }
+
+            return uploadedImages
+                .Select(MapToDto)
+                .ToList();
+        }
+
+        public async Task<bool> SetMainImageAsync(int imageId)
+        {
+            var image = await _context.ProductImages.FindAsync(imageId);
+            if (image == null) return false;
+
+            var siblingImages = await _context.ProductImages
+                .Where(i => i.ProductId == image.ProductId)
+                .ToListAsync();
+
+            foreach (var sibling in siblingImages)
+            {
+                sibling.IsMain = sibling.Id == imageId;
+            }
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
 
         public async Task<bool> DeleteImageAsync(int imageId)
         {
             var image = await _context.ProductImages.FindAsync(imageId);
             if (image == null) return false;
 
-            // 1. Xóa file vật lý trên ổ cứng
-            string filePath = Path.Combine(_env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), image.ImageUrl.TrimStart('/'));
+            var productId = image.ProductId;
+            var wasMain = image.IsMain;
+
+            var filePath = Path.Combine(
+                _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"),
+                image.ImageUrl.TrimStart('/'));
+
             if (File.Exists(filePath))
             {
                 File.Delete(filePath);
             }
 
-            // 2. Xóa data trong DB
             _context.ProductImages.Remove(image);
-            return await _context.SaveChangesAsync() > 0;
+            await _context.SaveChangesAsync();
+
+            if (wasMain)
+            {
+                var replacement = await _context.ProductImages
+                    .Where(i => i.ProductId == productId)
+                    .OrderBy(i => i.SortOrder)
+                    .ThenBy(i => i.Id)
+                    .FirstOrDefaultAsync();
+
+                if (replacement != null)
+                {
+                    replacement.IsMain = true;
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            return true;
         }
     }
 }

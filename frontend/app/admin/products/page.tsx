@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import axiosClient from "@/lib/axios";
+import { productsApi } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,11 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Edit, Package, Plus, Search, Trash2 } from "lucide-react";
-import type {
-  ApiSuccessResponse,
-  ProductListItem,
-  ProductListResponse,
-} from "@/app/types";
+import type { ProductListItem } from "@/app/types";
 import { formatCurrency } from "@/lib/utils";
 
 export default function ProductsPage() {
@@ -28,10 +24,8 @@ export default function ProductsPage() {
 
   const fetchProducts = useCallback(async (term: string) => {
     try {
-      const response = await axiosClient.get<ApiSuccessResponse<ProductListResponse>>(
-        `/Products?page=1&pageSize=20&search=${term}`
-      );
-      setProducts(response.data.items);
+      const result = await productsApi.list(term);
+      setProducts(result.items);
     } catch (error) {
       console.error("Lỗi lấy dữ liệu", error);
     }
@@ -50,7 +44,7 @@ export default function ProductsPage() {
   const handleDelete = async (id: number) => {
     if (window.confirm("Bạn muốn xóa sản phẩm này?")) {
       try {
-        await axiosClient.delete(`/Products/${id}`);
+        await productsApi.remove(id);
         await fetchProducts(searchTerm);
       } catch {
         alert("Có lỗi khi xóa sản phẩm");
@@ -63,12 +57,12 @@ export default function ProductsPage() {
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Quản lý giày</h2>
-          
         </div>
 
         <Link href="/admin/products/create">
           <Button className="bg-zinc-900">
-            <Plus className="mr-2 h-4 w-4" />Thêm giày
+            <Plus className="mr-2 h-4 w-4" />
+            Thêm giày
           </Button>
         </Link>
       </div>

@@ -6,6 +6,7 @@ import {
   BarChart3,
   FolderTree,
   LayoutGrid,
+  LogOut,
   Settings,
   ShoppingBag,
   ShoppingCart,
@@ -13,6 +14,7 @@ import {
   TicketPercent,
   Users,
 } from "lucide-react";
+import { useAuth } from "@/app/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
 const adminMenuItems = [
@@ -22,18 +24,18 @@ const adminMenuItems = [
   { name: "Products", href: "/admin/products", icon: ShoppingBag },
   { name: "Coupons", href: "/admin/coupons", icon: TicketPercent },
   { name: "Orders", href: "/admin/orders", icon: ShoppingCart },
-  { name: "Customers", href: "/admin/users", icon: Users },
+  { name: "Users", href: "/admin/users", icon: Users },
   { name: "Reports", href: "/admin/reports", icon: BarChart3 },
   { name: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
 type AdminSidebarProps = {
   collapsed: boolean;
-  onToggle: () => void;
 };
 
-export function AdminSidebar({ collapsed, onToggle }: AdminSidebarProps) {
+export function AdminSidebar({ collapsed }: AdminSidebarProps) {
   const pathname = usePathname();
+  const { logout } = useAuth();
 
   return (
     <aside
@@ -100,14 +102,15 @@ export function AdminSidebar({ collapsed, onToggle }: AdminSidebarProps) {
       <div className="border-t border-zinc-800 p-3">
         <button
           type="button"
-          onClick={onToggle}
+          onClick={logout}
           className={cn(
             "flex w-full items-center rounded-lg text-sm font-medium text-zinc-300 transition-colors hover:bg-zinc-800 hover:text-white",
             collapsed ? "justify-center px-3 py-3" : "gap-3 px-4 py-3"
           )}
+          title={collapsed ? "Đăng xuất" : undefined}
         >
-          <span className="text-lg leading-none">{collapsed ? "»" : "«"}</span>
-          {!collapsed ? <span>Thu gon</span> : null}
+          <LogOut className="h-5 w-5 shrink-0" />
+          {!collapsed ? <span>Đăng xuất</span> : null}
         </button>
       </div>
     </aside>

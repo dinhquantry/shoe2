@@ -22,6 +22,16 @@ export interface AuthLoginResponse {
   token?: string;
 }
 
+export interface AuthRegisterResponse {
+  success: boolean;
+  message: string;
+  data: {
+    id: number;
+    email: string;
+    fullName: string;
+  };
+}
+
 export interface AuthUser {
   fullName: string;
   email: string;
@@ -48,6 +58,24 @@ export interface Coupon {
   usageLimit: number;
   usedCount: number;
   isActive: boolean;
+}
+
+export interface AdminUser {
+  id: number;
+  fullName: string;
+  email: string;
+  phone: string;
+  role: number;
+  status: number;
+  avatarUrl?: string | null;
+  createdAt: string;
+  updatedAt?: string | null;
+}
+
+export interface ProductImageItem {
+  id: number;
+  imageUrl: string;
+  isMain: boolean;
 }
 
 export interface CategoryTreeNode {

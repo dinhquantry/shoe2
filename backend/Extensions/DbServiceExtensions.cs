@@ -21,6 +21,7 @@ namespace backend.Extensions
             services.AddScoped<IUserAddressService, UserAddressService>();
             services.AddScoped<IReviewService, ReviewService>();
             services.AddScoped<ICouponService, CouponService>();
+            services.AddScoped<IUserManagementService, UserManagementService>();
 
             services.AddCors(options =>
                 {

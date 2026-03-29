@@ -22,13 +22,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import axiosClient from "@/lib/axios";
+import { categoriesApi } from "@/lib/api";
 import { generateSlug } from "@/lib/utils";
 import type { CategoryTreeNode } from "@/app/types";
 
 const categorySchema = z.object({
-  name: z.string().min(1, "Ten danh muc khong duoc de trong"),
-  slug: z.string().min(1, "Slug khong duoc de trong"),
+  name: z.string().min(1, "Tên danh mục không được để trống"),
+  slug: z.string().min(1, "Slug không được để trống"),
   description: z.string().optional(),
   parentId: z.string(),
   isActive: z.boolean(),
@@ -100,16 +100,16 @@ export function CategoryDialog({
 
     try {
       if (category) {
-        await axiosClient.put(`/Categories/${category.id}`, payload);
+        await categoriesApi.update(category.id, payload);
       } else {
-        await axiosClient.post("/Categories", payload);
+        await categoriesApi.create(payload);
       }
 
       await onSuccess();
       onOpenChange(false);
     } catch (error) {
       console.error(error);
-      alert("Loi luu danh muc!");
+      alert("Lỗi lưu danh mục!");
     }
   };
 
@@ -117,13 +117,11 @@ export function CategoryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent aria-describedby={undefined}>
         <DialogHeader>
-          <DialogTitle>
-            {category ? "Sua danh muc" : "Them danh muc"}
-          </DialogTitle>
+          <DialogTitle>{category ? "Sửa danh mục" : "Thêm danh mục"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <Label>Ten danh muc *</Label>
+            <Label>Tên danh mục *</Label>
             <Input {...register("name")} />
           </div>
           <div className="space-y-2">
@@ -131,16 +129,16 @@ export function CategoryDialog({
             <Input {...register("slug")} />
           </div>
           <div className="space-y-2">
-            <Label>Danh muc cha</Label>
+            <Label>Danh mục cha</Label>
             <Select
               onValueChange={(value: string) => setValue("parentId", value)}
               value={parentId}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Chon danh muc cha" />
+                <SelectValue placeholder="Chọn danh mục cha" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="root">-- Danh muc goc --</SelectItem>
+                <SelectItem value="root">-- Danh mục gốc --</SelectItem>
                 {flatCategories.map((item) => {
                   if (category && item.id === category.id) {
                     return null;
@@ -156,7 +154,7 @@ export function CategoryDialog({
             </Select>
           </div>
           <div className="flex items-center justify-between pt-2">
-            <Label>Hoat dong</Label>
+            <Label>Trạng thái</Label>
             <Switch
               checked={isActiveValue}
               onCheckedChange={(value: boolean) =>
@@ -166,7 +164,7 @@ export function CategoryDialog({
           </div>
           <DialogFooter className="mt-6">
             <Button type="submit" className="bg-blue-600">
-              Luu
+              Lưu
             </Button>
           </DialogFooter>
         </form>

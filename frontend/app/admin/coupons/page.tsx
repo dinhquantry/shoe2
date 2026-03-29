@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import axiosClient from "@/lib/axios";
+import { couponsApi } from "@/lib/api";
 import {
   Table,
   TableBody,
@@ -12,9 +12,9 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Plus, Trash2 } from "lucide-react";
+import { Edit, Plus } from "lucide-react";
 import { CouponDialog } from "./CouponDialog";
-import type { ApiSuccessResponse, Coupon } from "@/app/types";
+import type { Coupon } from "@/app/types";
 
 const currencyFormatter = new Intl.NumberFormat("vi-VN", {
   style: "currency",
@@ -38,12 +38,9 @@ export default function CouponsPage() {
 
   const fetchCoupons = async () => {
     try {
-      const response = await axiosClient.get<ApiSuccessResponse<Coupon[]>>(
-        "/Coupons"
-      );
-      setCoupons(response.data);
+      setCoupons(await couponsApi.list());
     } catch (error) {
-      console.error("Loi lay du lieu coupon", error);
+      console.error("Lỗi lấy dữ liệu coupon", error);
     }
   };
 
@@ -52,14 +49,12 @@ export default function CouponsPage() {
 
     const loadCoupons = async () => {
       try {
-        const response = await axiosClient.get<ApiSuccessResponse<Coupon[]>>(
-          "/Coupons"
-        );
+        const data = await couponsApi.list();
         if (!ignore) {
-          setCoupons(response.data);
+          setCoupons(data);
         }
       } catch (error) {
-        console.error("Loi lay du lieu coupon", error);
+        console.error("Lỗi lấy dữ liệu mã giảm giá", error);
       }
     };
 
@@ -80,108 +75,131 @@ export default function CouponsPage() {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (id: number) => {
-    if (window.confirm("Ban co chac muon xoa mem ma giam gia nay?")) {
-      try {
-        await axiosClient.delete(`/Coupons/${id}`);
-        await fetchCoupons();
-      } catch (error) {
-        console.error(error);
-        alert("Loi khi xoa ma giam gia!");
-      }
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Ma giam gia</h2>
+          <h2 className="text-2xl font-bold text-zinc-900">Mã giảm giá</h2>
           <p className="text-sm text-zinc-500">
-            Quan ly coupon va trang thai ap dung trong he thong.
+            Quản lý danh sách mã giảm giá trong hệ thống
           </p>
         </div>
-        <Button onClick={handleAdd} className="bg-zinc-900">
-          <Plus className="mr-2 h-4 w-4" /> Them coupon
+
+        <Button onClick={handleAdd} className="bg-zinc-900 hover:bg-zinc-800">
+          <Plus className="mr-2 h-4 w-4" />
+          Thêm mã
         </Button>
       </div>
 
-      <div className="rounded-md border bg-white shadow-sm">
-        <Table>
+      <div className="overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm">
+        <Table className="w-full border-collapse">
           <TableHeader className="bg-zinc-50">
-            <TableRow>
-              <TableHead>Ma</TableHead>
-              <TableHead>Loai giam</TableHead>
-              <TableHead>Dieu kien</TableHead>
-              <TableHead>Thoi gian</TableHead>
-              <TableHead>Luot dung</TableHead>
-              <TableHead>Trang thai</TableHead>
-              <TableHead className="text-right">Thao tac</TableHead>
+            <TableRow className="border-b border-zinc-200 hover:bg-zinc-50">
+              <TableHead className="border-r border-zinc-200 px-4 py-3 font-semibold text-zinc-900">
+                Mã
+              </TableHead>
+              <TableHead className="border-r border-zinc-200 px-4 py-3 font-semibold text-zinc-900">
+                Loại giảm
+              </TableHead>
+              <TableHead className="border-r border-zinc-200 px-4 py-3 font-semibold text-zinc-900">
+                Điều kiện
+              </TableHead>
+              <TableHead className="border-r border-zinc-200 px-4 py-3 font-semibold text-zinc-900">
+                Thời gian
+              </TableHead>
+              <TableHead className="border-r border-zinc-200 px-4 py-3 font-semibold text-zinc-900">
+                Lượt dùng
+              </TableHead>
+              <TableHead className="border-r border-zinc-200 px-4 py-3 font-semibold text-zinc-900">
+                Trạng thái
+              </TableHead>
+              <TableHead className="px-4 py-3 text-right font-semibold text-zinc-900">
+                Thao tác
+              </TableHead>
             </TableRow>
           </TableHeader>
+
           <TableBody>
             {coupons.length > 0 ? (
               coupons.map((coupon) => (
-                <TableRow key={coupon.id}>
-                  <TableCell>
+                <TableRow
+                  key={coupon.id}
+                  className="border-b border-zinc-200 transition hover:bg-zinc-50"
+                >
+                  <TableCell className="border-r border-zinc-200 px-4 py-4 align-top">
                     <div className="space-y-1">
-                      <p className="font-medium">{coupon.code}</p>
-                      <p className="text-xs text-zinc-500">
-                        {getDiscountLabel(coupon)}
+                      <p className="font-semibold text-zinc-900">{coupon.code}</p>
+                    </div>
+                  </TableCell>
+
+                  <TableCell className="border-r border-zinc-200 px-4 py-4 align-top">
+                    <p className="font-medium text-zinc-900">
+                      {getDiscountLabel(coupon)}
+                    </p>
+                  </TableCell>
+
+                  <TableCell className="border-r border-zinc-200 px-4 py-4 align-top">
+                    <div className="space-y-1 text-sm text-zinc-600 leading-6">
+                      <p>
+                        Đơn tối thiểu:{" "}
+                        <span className="font-medium text-zinc-700">
+                          {currencyFormatter.format(coupon.minOrderValue)}
+                        </span>
+                      </p>
+                      <p>
+                        Giảm tối đa:{" "}
+                        <span className="font-medium text-zinc-700">
+                          {currencyFormatter.format(coupon.maxDiscountValue)}
+                        </span>
                       </p>
                     </div>
                   </TableCell>
-                  <TableCell>
-                    {coupon.discountType === 0 ? "Phan tram" : "So tien co dinh"}
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1 text-sm text-zinc-600">
-                      <p>
-                        Don toi thieu:{" "}
-                        {currencyFormatter.format(coupon.minOrderValue)}
-                      </p>
-                      <p>
-                        Giam toi da:{" "}
-                        {currencyFormatter.format(coupon.maxDiscountValue)}
-                      </p>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm text-zinc-600">
-                    <div className="space-y-1">
+
+                  <TableCell className="border-r border-zinc-200 px-4 py-4 align-top">
+                    <div className="space-y-1 text-sm text-zinc-600 leading-6">
                       <p>{dateFormatter.format(new Date(coupon.startDate))}</p>
                       <p>{dateFormatter.format(new Date(coupon.endDate))}</p>
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm text-zinc-600">
-                    {coupon.usedCount}/{coupon.usageLimit}
+
+                  <TableCell className="border-r border-zinc-200 px-4 py-4 align-top text-sm text-zinc-700">
+                    <span className="font-medium">
+                      {coupon.usedCount}/{coupon.usageLimit}
+                    </span>
                   </TableCell>
-                  <TableCell>
-                    <Badge variant={coupon.isActive ? "default" : "secondary"}>
-                      {coupon.isActive ? "Hoat dong" : "Da tat"}
+
+                  <TableCell className="border-r border-zinc-200 px-4 py-4 align-top">
+                    <Badge
+                      variant={coupon.isActive ? "default" : "secondary"}
+                      className={
+                        coupon.isActive
+                          ? "rounded-full px-3 py-1"
+                          : "rounded-full px-3 py-1"
+                      }
+                    >
+                      {coupon.isActive ? "Hoạt động" : "Đã tắt"}
                     </Badge>
                   </TableCell>
-                  <TableCell className="space-x-2 text-right">
+
+                  <TableCell className="px-4 py-4 text-right align-top">
                     <Button
                       onClick={() => handleEdit(coupon)}
                       variant="ghost"
                       size="icon"
+                      className="hover:bg-blue-50"
                     >
                       <Edit className="h-4 w-4 text-blue-600" />
-                    </Button>
-                    <Button
-                      onClick={() => handleDelete(coupon.id)}
-                      variant="ghost"
-                      size="icon"
-                    >
-                      <Trash2 className="h-4 w-4 text-red-500" />
                     </Button>
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="py-6 text-center text-zinc-500">
-                  Chua co coupon nao
+                <TableCell
+                  colSpan={7}
+                  className="py-8 text-center text-sm text-zinc-500"
+                >
+                  Chưa có coupon nào
                 </TableCell>
               </TableRow>
             )}

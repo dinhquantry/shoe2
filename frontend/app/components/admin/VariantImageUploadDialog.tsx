@@ -10,7 +10,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ImageIcon, Loader2, Star, Trash2, UploadCloud, X } from "lucide-react";
-import axiosClient, { API_BASE_URL } from "@/lib/axios";
+import { productImagesApi } from "@/lib/api";
+import { API_BASE_URL } from "@/lib/axios";
+import type { ProductImageItem } from "@/app/types";
 
 interface ProductImageUploadDialogProps {
   open: boolean;
@@ -26,18 +28,6 @@ interface ProductImageManagerProps {
   onSuccess?: () => void;
 }
 
-interface ExistingImage {
-  id: number;
-  imageUrl: string;
-  isMain: boolean;
-}
-
-interface ApiSuccessResponse<T> {
-  success: boolean;
-  data: T;
-  message?: string;
-}
-
 const MAX_IMAGES_PER_PRODUCT = 4;
 
 export function ProductImageManager({
@@ -46,7 +36,7 @@ export function ProductImageManager({
   onSuccess,
 }: ProductImageManagerProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [existingImages, setExistingImages] = useState<ExistingImage[]>([]);
+  const [existingImages, setExistingImages] = useState<ProductImageItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isLoadingImages, setIsLoadingImages] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -74,13 +64,7 @@ export function ProductImageManager({
 
     setIsLoadingImages(true);
     try {
-      const response = await axiosClient.get<ApiSuccessResponse<ExistingImage[]>>(
-        `/ProductImages/product/${productId}`
-      );
-
-      setExistingImages(
-  Array.isArray(response.data) ? response.data : []
-);
+      setExistingImages(await productImagesApi.listByProduct(productId));
     } catch (error) {
       console.error("Loi lay danh sach anh:", error);
       setExistingImages([]);
@@ -152,11 +136,7 @@ export function ProductImageManager({
 
     setIsUploading(true);
     try {
-      const formData = new FormData();
-      formData.append("ProductId", productId.toString());
-      selectedFiles.forEach((file) => formData.append("Files", file));
-
-      await axiosClient.post("/ProductImages/upload", formData);
+      await productImagesApi.upload(productId, selectedFiles);
 
       setSelectedFiles([]);
       await fetchExistingImages();
@@ -174,7 +154,7 @@ export function ProductImageManager({
     if (!window.confirm("Ban co chac muon xoa anh nay?")) return;
 
     try {
-      await axiosClient.delete(`/ProductImages/${imageId}`);
+      await productImagesApi.remove(imageId);
       await fetchExistingImages();
       onSuccess?.();
     } catch (error) {
@@ -185,7 +165,7 @@ export function ProductImageManager({
 
   const handleSetMainImage = async (imageId: number) => {
     try {
-      await axiosClient.put(`/ProductImages/${imageId}/set-main`);
+      await productImagesApi.setMain(imageId);
       await fetchExistingImages();
       onSuccess?.();
     } catch (error) {

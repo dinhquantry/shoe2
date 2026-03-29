@@ -1,7 +1,6 @@
 "use client";
 
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/app/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -13,9 +12,6 @@ type AdminHeaderProps = {
 
 export function AdminHeader({ collapsed, onToggle }: AdminHeaderProps) {
   const { user } = useAuth();
-  const userInitial = user?.fullName
-    ? user.fullName.split(" ").pop()?.charAt(0).toUpperCase()
-    : "U";
 
   return (
     <header
@@ -30,7 +26,6 @@ export function AdminHeader({ collapsed, onToggle }: AdminHeaderProps) {
         size="icon"
         onClick={onToggle}
         className="border-zinc-200 bg-white shadow-sm"
-        aria-label={collapsed ? "Mo rong sidebar" : "Thu gon sidebar"}
       >
         {collapsed ? (
           <PanelLeftOpen className="h-4 w-4" />
@@ -40,18 +35,16 @@ export function AdminHeader({ collapsed, onToggle }: AdminHeaderProps) {
       </Button>
 
       <div className="flex items-center gap-3">
-        <div className="hidden text-right sm:block">
-          <p className="text-sm font-semibold leading-none text-zinc-900">
-            {user?.fullName || "Guest User"}
-          </p>
-          <p className="mt-1 text-xs text-zinc-500">Administrator</p>
-        </div>
 
-        <Avatar className="h-9 w-9 border border-zinc-200 shadow-sm">
-          <AvatarFallback className="bg-zinc-900 text-xs font-bold text-white">
-            {userInitial}
-          </AvatarFallback>
-        </Avatar>
+           
+
+              <p className="text-sm font-semibold text-zinc-900">
+                {user?.fullName || "Guest User"}
+              </p>
+              <p className="mt-1 text-xs text-zinc-500">
+                {user?.email || "No email available"}
+              </p>
+
       </div>
     </header>
   );

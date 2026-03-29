@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import axiosClient from "@/lib/axios";
+import { brandsApi, categoriesApi, productImagesApi, productsApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeft, ImagePlus, Loader2, Plus, Trash2, X } from "lucide-react";
-import type { ApiSuccessResponse, Brand, CategoryTreeNode, ProductDetail } from "@/app/types";
+import type { Brand, CategoryTreeNode } from "@/app/types";
 
 const MAX_IMAGES_PER_PRODUCT = 4;
 
@@ -36,22 +36,22 @@ const parseMoney = (value: string) => {
 };
 
 const productSchema = z.object({
-  name: z.string().min(1, "Ten giay khong duoc de trong"),
+  name: z.string().min(1, "Tên giày không được để trống"),
   description: z.string().optional(),
-  basePrice: z.number().min(0, "Gia phai lon hon hoac bang 0"),
-  brandId: z.number().min(1, "Chua chon thuong hieu"),
-  categoryId: z.number().min(1, "Chua chon danh muc"),
+  basePrice: z.number().min(0, "Giá phải lớn hơn hoặc bằng 0"),
+  brandId: z.number().min(1, "Chưa chọn thương hiệu"),
+  categoryId: z.number().min(1, "Chưa chọn danh mục"),
   variants: z
     .array(
       z.object({
-        sku: z.string().min(1, "Nhap ma SKU"),
-        color: z.string().min(1, "Nhap mau sac"),
-        size: z.string().min(1, "Nhap size"),
-        price: z.number().min(0, "Gia khong hop le"),
-        stockQuantity: z.number().min(0, "Ton kho khong hop le"),
+        sku: z.string().min(1, "Nhập mã SKU"),
+        color: z.string().min(1, "Nhập màu sắc"),
+        size: z.string().min(1, "Nhập size"),
+        price: z.number().min(0, "Giá không hợp lệ"),
+        stockQuantity: z.number().min(0, "Tồn kho không hợp lệ"),
       })
     )
-    .min(1, "San pham can it nhat 1 bien the"),
+    .min(1, "Sản phẩm cần ít nhất 1 biến thể"),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -110,8 +110,8 @@ export default function CreateProductPage() {
     const fetchData = async () => {
       try {
         const [brandResponse, categoryResponse] = await Promise.all([
-          axiosClient.get<ApiSuccessResponse<Brand[]>>("/Brands"),
-          axiosClient.get<ApiSuccessResponse<CategoryTreeNode[]>>("/Categories/tree"),
+          brandsApi.list(),
+          categoriesApi.tree(),
         ]);
 
         const flattenCategories = (items: CategoryTreeNode[]): CategoryTreeNode[] =>
@@ -121,11 +121,11 @@ export default function CreateProductPage() {
           );
 
         if (!ignore) {
-          setBrands(brandResponse.data);
-          setCategories(flattenCategories(categoryResponse.data));
+          setBrands(brandResponse);
+          setCategories(flattenCategories(categoryResponse));
         }
       } catch (error) {
-        console.error("Loi lay du lieu:", error);
+        console.error("Lỗi lấy dữ liệu:", error);
       }
     };
 
@@ -139,7 +139,7 @@ export default function CreateProductPage() {
   const appendImages = (files: File[]) => {
     const remainingSlots = MAX_IMAGES_PER_PRODUCT - selectedImages.length;
     if (remainingSlots <= 0) {
-      alert(`Moi san pham chi duoc toi da ${MAX_IMAGES_PER_PRODUCT} anh.`);
+      alert(`Mỗi sản phẩm chỉ được tối đa ${MAX_IMAGES_PER_PRODUCT} ảnh.`);
       return;
     }
 
@@ -148,7 +148,7 @@ export default function CreateProductPage() {
       .slice(0, remainingSlots);
 
     if (acceptedFiles.length < files.length) {
-      alert(`Chi co the chon toi da ${remainingSlots} anh nua.`);
+      alert(`Chỉ có thể chọn tối đa ${remainingSlots} ảnh nữa.`);
     }
 
     setSelectedImages((prev) => [...prev, ...acceptedFiles]);
@@ -172,11 +172,7 @@ export default function CreateProductPage() {
 
     setIsUploadingImages(true);
     try {
-      const formData = new FormData();
-      formData.append("ProductId", productId.toString());
-      selectedImages.forEach((file) => formData.append("Files", file));
-
-      await axiosClient.post("/ProductImages/upload", formData);
+      await productImagesApi.upload(productId, selectedImages);
     } finally {
       setIsUploadingImages(false);
     }
@@ -184,25 +180,20 @@ export default function CreateProductPage() {
 
   const onSubmit = async (values: ProductFormValues) => {
     try {
-      const response = await axiosClient.post<ApiSuccessResponse<ProductDetail>, ProductFormValues>(
-        "/Products",
-        values
-      );
-
-      const createdProduct = response.data;
+      const createdProduct = await productsApi.create(values);
 
       try {
         await uploadImagesForProduct(createdProduct.id);
-        alert("Them san pham thanh cong.");
+        alert("Thêm sản phẩm thành công.");
         router.push("/admin/products");
       } catch (imageError) {
-        console.error("Loi upload anh sau khi tao san pham:", imageError);
-        alert("Da tao san pham, nhung upload anh chua thanh cong. Ban co the bo sung anh trong trang sua.");
+        console.error("Lỗi upload ảnh sau khi tạo sản phẩm:", imageError);
+        alert("Đã tạo sản phẩm, nhưng upload ảnh chưa thành công. Bạn có thể bổ sung ảnh trong trang sửa.");
         router.push(`/admin/products/edit/${createdProduct.id}`);
       }
     } catch (error) {
-      console.error("Loi tao san pham:", error);
-      alert("Co loi xay ra khi luu san pham. Vui long kiem tra lai ma SKU va du lieu da nhap.");
+      console.error("Lỗi tạo sản phẩm:", error);
+      alert("Có lỗi xảy ra khi lưu sản phẩm. Vui lòng kiểm tra lại mã SKU và dữ liệu đã nhập.");
     }
   };
 
@@ -215,9 +206,9 @@ export default function CreateProductPage() {
           </Button>
 
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">Them san pham moi</h2>
+            <h2 className="text-2xl font-bold tracking-tight">Thêm sản phẩm mới</h2>
             <p className="text-sm text-zinc-500">
-              Nhap thong tin co ban, hinh anh va cac bien the cua san pham.
+              Nhập thông tin cơ bản, hình ảnh và các biến thể của sản phẩm.
             </p>
           </div>
         </div>
@@ -226,19 +217,19 @@ export default function CreateProductPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <Card className="border-zinc-200 shadow-sm">
           <CardHeader>
-            <CardTitle>Thong tin co ban</CardTitle>
+            <CardTitle>Thông tin cơ bản</CardTitle>
           </CardHeader>
 
           <CardContent className="space-y-5">
             <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
               <div className="space-y-2 xl:col-span-2">
-                <Label htmlFor="name">Ten giay *</Label>
+                <Label htmlFor="name">Tên giày *</Label>
                 <Input id="name" {...register("name")} placeholder="VD: Nike Air Force 1..." />
                 {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
               </div>
 
               <div className="space-y-2">
-                <Label>Gia goc *</Label>
+                <Label>Giá gốc *</Label>
                 <Controller
                   name="basePrice"
                   control={control}
@@ -264,14 +255,14 @@ export default function CreateProductPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Thuong hieu *</Label>
+                <Label>Thương hiệu *</Label>
                 <Select
                   onValueChange={(value) =>
                     setValue("brandId", Number(value), { shouldValidate: true })
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Chon thuong hieu" />
+                    <SelectValue placeholder="Chọn thương hiệu" />
                   </SelectTrigger>
                   <SelectContent>
                     {brands.map((brand) => (
@@ -285,14 +276,14 @@ export default function CreateProductPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Danh muc *</Label>
+                <Label>Danh mục *</Label>
                 <Select
                   onValueChange={(value) =>
                     setValue("categoryId", Number(value), { shouldValidate: true })
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Chon danh muc" />
+                    <SelectValue placeholder="Chọn danh mục" />
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((category) => (
@@ -308,11 +299,11 @@ export default function CreateProductPage() {
               </div>
 
               <div className="space-y-2 xl:col-span-2">
-                <Label htmlFor="description">Mo ta chi tiet</Label>
+                <Label htmlFor="description">Mô tả chi tiết</Label>
                 <textarea
                   id="description"
                   {...register("description")}
-                  placeholder="Mo ta ngan gon ve chat lieu, phong cach, dac diem noi bat..."
+                  placeholder="Mô tả ngắn gọn về chất liệu, phong cách, đặc điểm nổi bật..."
                   className="min-h-32 w-full rounded-md border border-zinc-200 bg-white p-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
@@ -322,9 +313,9 @@ export default function CreateProductPage() {
 
         <Card className="border-zinc-200 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Hinh anh san pham</CardTitle>
+            <CardTitle>Hình ảnh sản phẩm</CardTitle>
             <span className="text-xs text-zinc-500">
-              {selectedImages.length}/{MAX_IMAGES_PER_PRODUCT} anh
+              {selectedImages.length}/{MAX_IMAGES_PER_PRODUCT} ảnh
             </span>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -334,10 +325,10 @@ export default function CreateProductPage() {
             >
               <ImagePlus className="mb-3 h-8 w-8 text-zinc-400" />
               <p className="text-sm font-medium text-zinc-700">
-                Bam de chon anh tu may tinh
+                Bấm để chọn ảnh từ máy tính
               </p>
               <p className="mt-1 text-xs text-zinc-500">
-                Toi da 4 anh. Sau khi tao san pham, anh dau tien se la anh chinh.
+                Tối đa 4 ảnh. Sau khi tạo sản phẩm, ảnh đầu tiên sẽ là ảnh chính.
               </p>
               <input
                 ref={fileInputRef}
@@ -367,7 +358,7 @@ export default function CreateProductPage() {
                     </button>
                     {index === 0 && (
                       <span className="absolute left-0 top-0 rounded-br-md bg-blue-500 px-1.5 py-0.5 text-[10px] font-medium text-white">
-                        Anh chinh
+                        Ảnh chính
                       </span>
                     )}
                   </div>
@@ -375,7 +366,7 @@ export default function CreateProductPage() {
               </div>
             ) : (
               <p className="text-sm text-zinc-500">
-                Chua chon anh nao. Ban co the bo qua va bo sung anh sau trong trang sua.
+                Chưa chọn ảnh nào. Bạn có thể bỏ qua và bổ sung ảnh sau trong trang sửa.
               </p>
             )}
           </CardContent>
@@ -383,7 +374,7 @@ export default function CreateProductPage() {
 
         <Card className="border-zinc-200 shadow-sm">
           <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <CardTitle>Danh sach bien the</CardTitle>
+            <CardTitle>Danh sách biến thể</CardTitle>
 
             <Button
               type="button"
@@ -400,7 +391,7 @@ export default function CreateProductPage() {
               }
             >
               <Plus className="mr-2 h-4 w-4" />
-              Them bien the
+              Thêm biến thể
             </Button>
           </CardHeader>
 
@@ -410,11 +401,11 @@ export default function CreateProductPage() {
                 <thead className="border-b bg-zinc-50">
                   <tr>
                     <th className="whitespace-nowrap p-3 font-medium">SKU</th>
-                    <th className="whitespace-nowrap p-3 font-medium">Mau sac</th>
+                    <th className="whitespace-nowrap p-3 font-medium">Màu sắc</th>
                     <th className="whitespace-nowrap p-3 font-medium">Size</th>
-                    <th className="whitespace-nowrap p-3 font-medium">Gia rieng</th>
-                    <th className="whitespace-nowrap p-3 font-medium">Ton kho</th>
-                    <th className="whitespace-nowrap p-3 text-center font-medium">Xoa</th>
+                    <th className="whitespace-nowrap p-3 font-medium">Giá riêng</th>
+                    <th className="whitespace-nowrap p-3 font-medium">Tồn kho</th>
+                    <th className="whitespace-nowrap p-3 text-center font-medium">Xóa</th>
                   </tr>
                 </thead>
 
@@ -514,7 +505,7 @@ export default function CreateProductPage() {
 
         <div className="sticky bottom-0 flex justify-end gap-3 border-t bg-white/95 px-1 py-4 backdrop-blur">
           <Button type="button" variant="outline" onClick={() => router.back()}>
-            Huy bo
+            Hủy bỏ
           </Button>
           <Button
             type="submit"
@@ -524,10 +515,10 @@ export default function CreateProductPage() {
             {isSubmitting || isUploadingImages ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Dang luu...
+                Đang lưu...
               </>
             ) : (
-              "Luu san pham"
+              "Lưu sản phẩm"
             )}
           </Button>
         </div>

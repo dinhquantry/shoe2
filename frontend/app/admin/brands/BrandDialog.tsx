@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import axiosClient from "@/lib/axios";
+import { brandsApi } from "@/lib/api";
 import { generateSlug } from "@/lib/utils";
 import type { Brand } from "@/app/types";
 
@@ -73,9 +73,9 @@ export function BrandDialog({
   const onSubmit = async (values: BrandFormValues) => {
     try {
       if (brand) {
-        await axiosClient.put(`/Brands/${brand.id}`, values);
+        await brandsApi.update(brand.id, values);
       } else {
-        await axiosClient.post("/Brands", values);
+        await brandsApi.create(values);
       }
 
       await onSuccess();
@@ -91,7 +91,7 @@ export function BrandDialog({
       <DialogContent aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>
-            {brand ? "Chỉnh sửa thương hiệu" : "Thêm thương hiệu mới"}
+            {brand ? "Chỉnh sửa thương hiệu" : "Thêm thương hiệu"}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -107,11 +107,11 @@ export function BrandDialog({
             <Label>Mô tả</Label>
             <Input
               {...register("description")}
-              placeholder="Mô tả 1 chút..."
+              placeholder="Mô tả 1 chút ..."
             />
           </div>
           <div className="flex items-center justify-between pt-2">
-            <Label>Trạng thái hoạt động</Label>
+            <Label>Trạng thái</Label>
             <Switch
               checked={isActiveValue}
               onCheckedChange={(value: boolean) =>
@@ -125,7 +125,7 @@ export function BrandDialog({
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              Hủy
+              Huy
             </Button>
             <Button type="submit" className="bg-blue-600">
               {brand ? "Lưu thay đổi" : "Tạo mới"}

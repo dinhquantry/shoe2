@@ -50,6 +50,11 @@ namespace backend.Services
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == loginDto.Email);
             if (user == null) return null;
 
+            if (user.Status != 1)
+            {
+                return null;
+            }
+
             if (!BCrypt.Net.BCrypt.Verify(loginDto.Password, user.PasswordHash))
             {
                 return null;

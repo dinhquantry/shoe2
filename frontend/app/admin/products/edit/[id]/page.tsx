@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import axiosClient from "@/lib/axios";
+import { brandsApi, categoriesApi, productsApi } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,10 +31,8 @@ import {
 import { ArrowLeft, Edit, Plus, Trash2 } from "lucide-react";
 import { ProductImageManager } from "@/app/components/admin/VariantImageUploadDialog";
 import type {
-  ApiSuccessResponse,
   Brand,
   CategoryTreeNode,
-  ProductDetail,
   ProductVariantSummary,
 } from "@/app/types";
 
@@ -61,11 +59,11 @@ const parseMoney = (value: string) => {
 };
 
 const productUpdateSchema = z.object({
-  name: z.string().min(1, "Ten giay khong duoc trong"),
+  name: z.string().min(1, "Tên giày không được trống"),
   description: z.string().optional(),
-  basePrice: z.number().min(0, "Gia phai lon hon hoac bang 0"),
-  brandId: z.number().min(1, "Chua chon thuong hieu"),
-  categoryId: z.number().min(1, "Chua chon danh muc"),
+  basePrice: z.number().min(0, "Giá phải lớn hơn hoặc bằng 0"),
+  brandId: z.number().min(1, "Chưa chọn thương hiệu"),
+  categoryId: z.number().min(1, "Chưa chọn danh mục"),
   isActive: z.boolean(),
 });
 
@@ -128,9 +126,9 @@ export default function EditProductPage() {
   const fetchAllData = useCallback(async () => {
     try {
       const [brandRes, catRes, productRes] = await Promise.all([
-        axiosClient.get<ApiSuccessResponse<Brand[]>>("/Brands"),
-        axiosClient.get<ApiSuccessResponse<CategoryTreeNode[]>>("/Categories/tree"),
-        axiosClient.get<ApiSuccessResponse<ProductDetail>>(`/Products/${productId}`),
+        brandsApi.list(),
+        categoriesApi.tree(),
+        productsApi.getById(productId),
       ]);
 
       const flattenCategories = (items: CategoryTreeNode[]): CategoryTreeNode[] =>
@@ -139,10 +137,10 @@ export default function EditProductPage() {
           []
         );
 
-      setBrands(brandRes.data);
-      setCategories(flattenCategories(catRes.data));
+      setBrands(brandRes);
+      setCategories(flattenCategories(catRes));
 
-      const product = productRes.data;
+      const product = productRes;
       reset({
         name: product.name,
         description: product.description ?? "",
@@ -171,27 +169,27 @@ export default function EditProductPage() {
 
   const onSubmitProduct = async (values: ProductUpdateValues) => {
     try {
-      await axiosClient.put(`/Products/${productId}`, values);
-      alert("Cap nhat thong tin chung thanh cong.");
+      await productsApi.update(productId, values);
+      alert("Cập nhật thông tin chung thành công.");
       await fetchAllData();
     } catch (error) {
-      console.error("Loi cap nhat san pham:", error);
-      alert("Loi khi cap nhat san pham.");
+      console.error("Lỗi cập nhật sản phẩm:", error);
+      alert("Lỗi khi cập nhật sản phẩm.");
     }
   };
 
   const handleAddVariant = async () => {
     if (!newVariant.sku || !newVariant.color || !newVariant.size) {
-      alert("Vui long nhap du SKU, mau va size.");
+      alert("Vui lòng nhập đủ SKU, màu và size.");
       return;
     }
 
     try {
-      await axiosClient.post("/ProductVariants", {
+      await productsApi.createVariant({
         ...newVariant,
         productId,
       });
-      alert("Them bien the thanh cong.");
+      alert("Thêm biến thể thành công.");
       setAddVariantOpen(false);
       setNewVariant({
         sku: "",
@@ -203,8 +201,8 @@ export default function EditProductPage() {
       });
       await fetchAllData();
     } catch (error) {
-      console.error("Loi them bien the:", error);
-      alert("Loi khi them bien the. Hay kiem tra lai SKU.");
+      console.error("Lỗi thêm biến thể:", error);
+      alert("Lỗi khi thêm biến thể. Hãy kiểm tra lại SKU.");
     }
   };
 
@@ -235,31 +233,31 @@ export default function EditProductPage() {
 
   const handleUpdateVariant = async () => {
     if (!editVariantData.sku || !editVariantData.color || !editVariantData.size) {
-      alert("Vui long nhap du SKU, mau va size.");
+      alert("Vui lòng nhập đủ SKU, màu và size.");
       return;
     }
 
     try {
-      await axiosClient.put(`/ProductVariants/${editVariantId}`, editVariantData);
-      alert("Cap nhat bien the thanh cong.");
+      await productsApi.updateVariant(editVariantId, editVariantData);
+      alert("Cập nhật biến thể thành công.");
       setEditVariantOpen(false);
       await fetchAllData();
     } catch (error) {
-      console.error("Loi cap nhat bien the:", error);
-      alert("Loi khi cap nhat bien the. Hay kiem tra lai SKU.");
+      console.error("Lỗi cập nhật biến thể:", error);
+      alert("Lỗi khi cập nhật biến thể. Hãy kiểm tra lại SKU.");
     }
   };
 
   const handleDeleteVariant = async (variantId: number) => {
-    if (!window.confirm("Ban co chac muon xoa bien the nay?")) return;
+    if (!window.confirm("Bạn có chắc muốn xóa biến thể này?")) return;
 
     try {
-      await axiosClient.delete(`/ProductVariants/${variantId}`);
-      alert("Da xoa bien the.");
+      await productsApi.removeVariant(variantId);
+      alert("Đã xóa biến thể.");
       await fetchAllData();
     } catch (error) {
-      console.error("Loi xoa bien the:", error);
-      alert("Loi khi xoa bien the.");
+      console.error("Lỗi xóa biến thể:", error);
+      alert("Lỗi khi xóa biến thể.");
     }
   };
 
@@ -269,24 +267,24 @@ export default function EditProductPage() {
         <Button variant="outline" size="icon" onClick={() => router.back()}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h2 className="text-2xl font-bold">Chinh sua san pham</h2>
+        <h2 className="text-2xl font-bold">Chỉnh sửa sản phẩm</h2>
       </div>
 
       <form onSubmit={handleSubmit(onSubmitProduct)} className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Thong tin co ban</CardTitle>
+            <CardTitle>Thông tin cơ bản</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2 space-y-2">
-                <Label>Ten giay *</Label>
+                <Label>Tên giày *</Label>
                 <Input {...register("name")} />
                 {errors.name && <p className="text-xs text-red-500">{errors.name.message}</p>}
               </div>
 
               <div className="space-y-2">
-                <Label>Gia goc *</Label>
+                <Label>Giá gốc *</Label>
                 <Controller
                   name="basePrice"
                   control={control}
@@ -308,9 +306,9 @@ export default function EditProductPage() {
               </div>
 
               <div className="space-y-2">
-                <Label className="invisible">Trang thai</Label>
+                <Label className="invisible">Trạng thái</Label>
                 <div className="flex h-10 items-center justify-between rounded-md border bg-zinc-50/50 px-3">
-                  <Label className="cursor-pointer">Dang kinh doanh</Label>
+                  <Label className="cursor-pointer">Đang kinh doanh</Label>
                   <Switch
                     checked={isActiveValue}
                     onCheckedChange={(value) =>
@@ -321,7 +319,7 @@ export default function EditProductPage() {
               </div>
 
               <div className="col-span-2 space-y-2">
-                <Label>Mo ta</Label>
+                <Label>Mô tả</Label>
                 <textarea
                   {...register("description")}
                   className="min-h-24 w-full rounded-md border p-3 text-sm"
@@ -329,7 +327,7 @@ export default function EditProductPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Thuong hieu *</Label>
+                <Label>Thương hiệu *</Label>
                 <Select
                   value={brandIdValue > 0 ? brandIdValue.toString() : undefined}
                   onValueChange={(value) =>
@@ -337,7 +335,7 @@ export default function EditProductPage() {
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Chon thuong hieu" />
+                    <SelectValue placeholder="Chọn thương hiệu" />
                   </SelectTrigger>
                   <SelectContent>
                     {brands.map((brand) => (
@@ -350,7 +348,7 @@ export default function EditProductPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Danh muc *</Label>
+                <Label>Danh mục *</Label>
                 <Select
                   value={categoryIdValue > 0 ? categoryIdValue.toString() : undefined}
                   onValueChange={(value) =>
@@ -358,7 +356,7 @@ export default function EditProductPage() {
                   }
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Chon danh muc" />
+                    <SelectValue placeholder="Chọn danh mục" />
                   </SelectTrigger>
                   <SelectContent>
                     {categories.map((category) => (
@@ -373,7 +371,7 @@ export default function EditProductPage() {
 
             <div className="flex justify-end pt-4">
               <Button type="submit" className="bg-blue-600" disabled={isSubmitting}>
-                {isSubmitting ? "Dang luu..." : "Luu thong tin"}
+                {isSubmitting ? "Đang lưu..." : "Lưu thông tin"}
               </Button>
             </div>
           </CardContent>
@@ -382,12 +380,12 @@ export default function EditProductPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Hinh anh san pham</CardTitle>
+          <CardTitle>Hình ảnh sản phẩm</CardTitle>
         </CardHeader>
         <CardContent>
           <ProductImageManager
             productId={productId}
-            productName={getValues("name") || `San pham #${productId}`}
+            productName={getValues("name") || `Sản phẩm #${productId}`}
             onSuccess={fetchAllData}
           />
         </CardContent>
@@ -396,9 +394,9 @@ export default function EditProductPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>Danh sach bien the</CardTitle>
+            <CardTitle>Danh sách biến thể</CardTitle>
             <p className="mt-1 text-sm text-zinc-500">
-              Ban co the them, sua day du SKU, mau, size, gia, ton kho va trang thai.
+              Bạn có thể thêm, sửa đầy đủ SKU, màu, size, giá, tồn kho và trạng thái.
             </p>
           </div>
           <Button
@@ -408,7 +406,7 @@ export default function EditProductPage() {
             className="bg-zinc-900 text-white hover:bg-zinc-800 hover:text-white"
           >
             <Plus className="mr-2 h-4 w-4" />
-            Them bien the
+            Thêm biến thể
           </Button>
         </CardHeader>
         <CardContent>
@@ -417,11 +415,11 @@ export default function EditProductPage() {
               <TableHeader className="bg-zinc-50">
                 <TableRow>
                   <TableHead>SKU</TableHead>
-                  <TableHead>Mau / Size</TableHead>
-                  <TableHead className="text-right">Gia ban</TableHead>
-                  <TableHead className="text-center">Ton kho</TableHead>
-                  <TableHead className="text-center">Trang thai</TableHead>
-                  <TableHead className="text-right">Thao tac</TableHead>
+                  <TableHead>Màu / Size</TableHead>
+                  <TableHead className="text-right">Giá bán</TableHead>
+                  <TableHead className="text-center">Tồn kho</TableHead>
+                  <TableHead className="text-center">Trạng thái</TableHead>
+                  <TableHead className="text-right">Thao tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -442,20 +440,19 @@ export default function EditProductPage() {
                         <Badge
                           variant={variant.stockQuantity > 0 ? "outline" : "destructive"}
                         >
-                          {variant.stockQuantity} chiec
+                          {variant.stockQuantity} chiếc
                         </Badge>
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge variant={variant.isActive ? "outline" : "secondary"}>
-                          {variant.isActive ? "Dang ban" : "Ngung ban"}
-                        </Badge>
+                          {variant.isActive ? "Đang bán" : "Ngưng bán"}  </Badge>
                       </TableCell>
                       <TableCell className="space-x-1 text-right">
                         <Button
                           onClick={() => openEditVariantDialog(variant)}
                           variant="ghost"
                           size="icon"
-                          title="Sua bien the"
+                          title="Sửa biến thể"
                         >
                           <Edit className="h-4 w-4 text-blue-600" />
                         </Button>
@@ -463,7 +460,7 @@ export default function EditProductPage() {
                           onClick={() => handleDeleteVariant(variant.id)}
                           variant="ghost"
                           size="icon"
-                          title="Xoa"
+                          title="Xóa"
                         >
                           <Trash2 className="h-4 w-4 text-red-500" />
                         </Button>
@@ -473,7 +470,7 @@ export default function EditProductPage() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={6} className="py-8 text-center text-zinc-500">
-                      Chua co bien the nao
+                      Chưa có biến thể nào
                     </TableCell>
                   </TableRow>
                 )}
@@ -486,11 +483,11 @@ export default function EditProductPage() {
       <Dialog open={addVariantOpen} onOpenChange={setAddVariantOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Them bien the moi</DialogTitle>
+            <DialogTitle>Thêm biến thể mới</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label>Ma SKU *</Label>
+              <Label>Mã SKU *</Label>
               <Input
                 placeholder="VD: NK-RED-40"
                 value={newVariant.sku}
@@ -501,9 +498,9 @@ export default function EditProductPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label>Mau sac *</Label>
+                <Label>Màu sắc *</Label>
                 <Input
-                  placeholder="VD: Do"
+                  placeholder="VD: Đo"
                   value={newVariant.color}
                   onChange={(event) =>
                     setNewVariant({ ...newVariant, color: event.target.value })
@@ -523,7 +520,7 @@ export default function EditProductPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label>Gia ban le</Label>
+                <Label>Giá bán lẻ</Label>
                 <div className="relative">
                   <Input
                     type="text"
@@ -542,7 +539,7 @@ export default function EditProductPage() {
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label>Ton kho</Label>
+                <Label>Tồn kho</Label>
                 <Input
                   type="number"
                   className="text-center"
@@ -559,10 +556,10 @@ export default function EditProductPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddVariantOpen(false)}>
-              Huy
+              Hủy
             </Button>
             <Button className="bg-zinc-900" onClick={handleAddVariant}>
-              Luu bien the
+              Lưu biến thể
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -571,11 +568,11 @@ export default function EditProductPage() {
       <Dialog open={editVariantOpen} onOpenChange={setEditVariantOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Cap nhat bien the</DialogTitle>
+            <DialogTitle>Cập nhật biến thể</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label>Ma SKU *</Label>
+              <Label>Mã SKU *</Label>
               <Input
                 value={editVariantData.sku}
                 onChange={(event) =>
@@ -585,7 +582,7 @@ export default function EditProductPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label>Mau sac *</Label>
+                <Label>Màu sắc *</Label>
                 <Input
                   value={editVariantData.color}
                   onChange={(event) =>
@@ -605,7 +602,7 @@ export default function EditProductPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label>Gia ban le</Label>
+                <Label>Giá bán lẻ</Label>
                 <div className="relative">
                   <Input
                     type="text"
@@ -624,7 +621,7 @@ export default function EditProductPage() {
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label>So luong trong kho</Label>
+                <Label>Số lượng trong kho</Label>
                 <Input
                   type="number"
                   className="text-center"
@@ -639,7 +636,7 @@ export default function EditProductPage() {
               </div>
             </div>
             <div className="mt-2 flex items-center justify-between rounded-md border p-3">
-              <Label className="cursor-pointer">Kinh doanh loai nay</Label>
+              <Label className="cursor-pointer">Kinh doanh loại này</Label>
               <Switch
                 checked={editVariantData.isActive}
                 onCheckedChange={(value) =>
@@ -650,10 +647,10 @@ export default function EditProductPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditVariantOpen(false)}>
-              Huy
+              Hủy
             </Button>
             <Button className="bg-blue-600" onClick={handleUpdateVariant}>
-              Cap nhat
+              Cập nhật
             </Button>
           </DialogFooter>
         </DialogContent>

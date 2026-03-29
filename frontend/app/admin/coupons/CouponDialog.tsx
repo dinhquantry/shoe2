@@ -22,17 +22,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import axiosClient from "@/lib/axios";
+import { couponsApi } from "@/lib/api";
 import type { Coupon } from "@/app/types";
 
 const couponSchema = z.object({
-  code: z.string().min(1, "Ma giam gia khong duoc de trong"),
+  code: z.string().min(1, "Mã giảm giá không được để trống"),
   discountType: z.string(),
   discountValue: z.number(),
   minOrderValue: z.number(),
   maxDiscountValue: z.number(),
-  startDate: z.string().min(1, "Vui long chon ngay bat dau"),
-  endDate: z.string().min(1, "Vui long chon ngay ket thuc"),
+  startDate: z.string().min(1, "Vui lòng chọn ngày bắt đầu"),
+  endDate: z.string().min(1, "Vui lòng chọn ngày kết thúc"),
   usageLimit: z.number().int(),
   isActive: z.boolean(),
 });
@@ -115,16 +115,16 @@ export function CouponDialog({
 
     try {
       if (coupon) {
-        await axiosClient.put(`/Coupons/${coupon.id}`, payload);
+        await couponsApi.update(coupon.id, payload);
       } else {
-        await axiosClient.post("/Coupons", payload);
+        await couponsApi.create(payload);
       }
 
       await onSuccess();
       onOpenChange(false);
     } catch (error) {
       console.error(error);
-      alert("Loi luu ma giam gia!");
+      alert("Lỗi lưu mã giảm giá!");
     }
   };
 
@@ -133,32 +133,32 @@ export function CouponDialog({
       <DialogContent aria-describedby={undefined} className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>
-            {coupon ? "Chinh sua ma giam gia" : "Them ma giam gia"}
+            {coupon ? "Chỉnh sửa mã giảm giá" : "Thêm mã giảm giá"}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>Ma giam gia *</Label>
+              <Label>Mã giảm giá *</Label>
               <Input {...register("code")} placeholder="VD: SUMMER20" />
             </div>
             <div className="space-y-2">
-              <Label>Loai giam gia</Label>
+              <Label>Loại giảm giá</Label>
               <Select
                 onValueChange={(value) => setValue("discountType", value)}
                 value={discountType}
               >
                 <SelectTrigger className="h-9 w-full">
-                  <SelectValue placeholder="Chon loai giam gia" />
+                  <SelectValue placeholder="Chọn loại giảm giá" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0">Phan tram (%)</SelectItem>
-                  <SelectItem value="1">So tien co dinh (VND)</SelectItem>
+                  <SelectItem value="0">Theo phần trăm (%)</SelectItem>
+                  <SelectItem value="1">Theo số tiền (VND)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Gia tri giam</Label>
+              <Label>Giá trị</Label>
               <Input
                 type="number"
                 step="0.01"
@@ -166,7 +166,7 @@ export function CouponDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label>Gia tri don toi thieu</Label>
+              <Label>Giá trị đơn tối thiểu</Label>
               <Input
                 type="number"
                 step="0.01"
@@ -174,7 +174,7 @@ export function CouponDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label>Giam toi da</Label>
+              <Label>Giá giảm tối đa</Label>
               <Input
                 type="number"
                 step="0.01"
@@ -182,34 +182,25 @@ export function CouponDialog({
               />
             </div>
             <div className="space-y-2">
-              <Label>So luot su dung</Label>
+              <Label>Số lượng</Label>
               <Input
                 type="number"
                 {...register("usageLimit", { valueAsNumber: true })}
               />
             </div>
             <div className="space-y-2">
-              <Label>Ngay bat dau</Label>
+              <Label>Thới gian bắt đầu</Label>
               <Input type="datetime-local" {...register("startDate")} />
             </div>
             <div className="space-y-2">
-              <Label>Ngay ket thuc</Label>
+              <Label>Thời gian kết thúc</Label>
               <Input type="datetime-local" {...register("endDate")} />
             </div>
           </div>
 
-          <div className="flex items-center justify-between rounded-lg border bg-zinc-50 px-4 py-3">
-            <div>
-              <p className="text-sm font-medium">Trang thai hoat dong</p>
-              <p className="text-xs text-zinc-500">
-                Tat ma nay neu muon ngung ap dung tam thoi.
-              </p>
-            </div>
-            <Switch
-              checked={isActiveValue}
-              onCheckedChange={(value: boolean) => setValue("isActive", value)}
-            />
-          </div>
+            <div className="flex items-center gap-5 w-fit  px-2 py-1">  <p className="text-sm font-medium">Trạng thái</p>
+              <Switch checked={isActiveValue} onCheckedChange={(value: boolean) => setValue("isActive", value)}/>
+</div>
 
           <DialogFooter className="mt-6">
             <Button
@@ -217,10 +208,10 @@ export function CouponDialog({
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              Huy
+              Hủy
             </Button>
             <Button type="submit" className="bg-blue-600">
-              {coupon ? "Luu thay doi" : "Tao moi"}
+              {coupon ? "Lưu" : "Tạo mới"}
             </Button>
           </DialogFooter>
         </form>

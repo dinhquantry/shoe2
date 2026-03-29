@@ -1,7 +1,7 @@
 "use client";
 
-import { type ReactNode, useEffect, useMemo, useState,Fragment } from "react";
-import axiosClient from "@/lib/axios";
+import { Fragment, type ReactNode, useEffect, useMemo, useState } from "react";
+import { categoriesApi } from "@/lib/api";
 import {
   Table,
   TableBody,
@@ -21,7 +21,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { CategoryDialog } from "./CategoryDialog";
-import type { ApiSuccessResponse, CategoryTreeNode } from "@/app/types";
+import type { CategoryTreeNode } from "@/app/types";
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<CategoryTreeNode[]>([]);
@@ -32,10 +32,7 @@ export default function CategoriesPage() {
 
   const fetchCategories = async () => {
     try {
-      const response = await axiosClient.get<
-        ApiSuccessResponse<CategoryTreeNode[]>
-      >("/Categories/tree");
-      setCategories(response.data);
+      setCategories(await categoriesApi.tree());
     } catch (error) {
       console.error(error);
     }
@@ -46,11 +43,9 @@ export default function CategoriesPage() {
 
     const loadCategories = async () => {
       try {
-        const response = await axiosClient.get<
-          ApiSuccessResponse<CategoryTreeNode[]>
-        >("/Categories/tree");
+        const data = await categoriesApi.tree();
         if (!ignore) {
-          setCategories(response.data);
+          setCategories(data);
         }
       } catch (error) {
         console.error(error);
@@ -83,7 +78,7 @@ export default function CategoriesPage() {
   const handleDelete = async (id: number) => {
     if (window.confirm("Xóa danh mục này và tiếp tục?")) {
       try {
-        await axiosClient.delete(`/Categories/${id}`);
+        await categoriesApi.remove(id);
         await fetchCategories();
       } catch {
         alert("Lỗi khi xóa!");
@@ -172,7 +167,7 @@ export default function CategoriesPage() {
           }}
           className="bg-zinc-900"
         >
-          <Plus className="mr-2 h-4 w-4" />  Tạo danh mục
+          <Plus className="mr-2 h-4 w-4" /> Tạo danh mục
         </Button>
       </div>
 

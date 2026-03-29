@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import axiosClient from "@/lib/axios";
+import { brandsApi } from "@/lib/api";
 import {
   Table,
   TableBody,
@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Plus, Trash2 } from "lucide-react";
 import { BrandDialog } from "./BrandDialog";
-import type { ApiSuccessResponse, Brand } from "@/app/types";
+import type { Brand } from "@/app/types";
 
 export default function BrandsPage() {
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -23,10 +23,7 @@ export default function BrandsPage() {
 
   const fetchBrands = async () => {
     try {
-      const response = await axiosClient.get<ApiSuccessResponse<Brand[]>>(
-        "/Brands"
-      );
-      setBrands(response.data);
+      setBrands(await brandsApi.list());
     } catch (error) {
       console.error("Lỗi lấy dữ liệu", error);
     }
@@ -37,11 +34,9 @@ export default function BrandsPage() {
 
     const loadBrands = async () => {
       try {
-        const response = await axiosClient.get<ApiSuccessResponse<Brand[]>>(
-          "/Brands"
-        );
+        const brands = await brandsApi.list();
         if (!ignore) {
-          setBrands(response.data);
+          setBrands(brands);
         }
       } catch (error) {
         console.error("Lỗi lấy dữ liệu", error);
@@ -68,10 +63,10 @@ export default function BrandsPage() {
   const handleDelete = async (id: number) => {
     if (window.confirm("Bạn có chắc muốn xóa danh mục này?")) {
       try {
-        await axiosClient.delete(`/Brands/${id}`);
+        await brandsApi.remove(id);
         await fetchBrands();
       } catch {
-        alert("Lỗi khi xóa !");
+        alert("Lỗi khi xóa!");
       }
     }
   };

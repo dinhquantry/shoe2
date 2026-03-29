@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "@/app/hooks/useAuth";
 import { AdminHeader } from "./admin_header";
 import { AdminSidebar } from "./admin_sidebar";
 
@@ -12,13 +13,22 @@ type AdminShellProps = {
 
 export function AdminShell({ children }: AdminShellProps) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const initializeAuth = useAuth((state) => state.initializeAuth);
 
   useEffect(() => {
     const storedValue = window.localStorage.getItem(SIDEBAR_STORAGE_KEY);
     if (storedValue === "true") {
-      setIsSidebarCollapsed(true);
+      const frameId = window.requestAnimationFrame(() => {
+        setIsSidebarCollapsed(true);
+      });
+
+      return () => window.cancelAnimationFrame(frameId);
     }
   }, []);
+
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed((previousValue) => {
@@ -30,10 +40,7 @@ export function AdminShell({ children }: AdminShellProps) {
 
   return (
     <div className="flex min-h-screen bg-zinc-50">
-      <AdminSidebar
-        collapsed={isSidebarCollapsed}
-        onToggle={toggleSidebar}
-      />
+      <AdminSidebar collapsed={isSidebarCollapsed} />
 
       <div
         className={`flex flex-1 flex-col transition-[margin] duration-300 ${

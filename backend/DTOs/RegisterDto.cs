@@ -7,7 +7,7 @@ namespace backend.DTOs
         [Required, EmailAddress]
         public string Email { get; set; } = string.Empty;
 
-        [Required, MinLength(6, ErrorMessage = "Mật khẩu phải ít nhất 6 ký tự")]
+        [Required, MinLength(6, ErrorMessage = "Mật khẩu phải có ít nhất 6 ký tự.")]
         public string Password { get; set; } = string.Empty;
 
         [Required]

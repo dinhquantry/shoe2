@@ -1,5 +1,5 @@
 import axiosClient from "@/lib/axios";
-import type { ApiSuccessResponse, ProductImageItem } from "@/app/types";
+import type { ApiSuccessResponse, ProductImageItem } from "@/types";
 
 export const productImagesApi = {
   async listByProduct(productId: number) {

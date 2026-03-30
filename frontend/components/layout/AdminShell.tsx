@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAuth } from "@/app/hooks/useAuth";
-import { AdminHeader } from "./admin_header";
-import { AdminSidebar } from "./admin_sidebar";
+import { useAuth } from "@/hooks/useAuth";
+import { AdminHeader } from "./AdminHeader";
+import { AdminSidebar } from "./AdminSidebar";
 
 const SIDEBAR_STORAGE_KEY = "admin-sidebar-collapsed";
 

@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Plus, Trash2 } from "lucide-react";
 import { BrandDialog } from "./BrandDialog";
-import type { Brand } from "@/app/types";
+import type { Brand } from "@/types";
 
 export default function BrandsPage() {
   const [brands, setBrands] = useState<Brand[]>([]);

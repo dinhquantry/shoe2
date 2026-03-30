@@ -182,7 +182,7 @@ namespace backend.Services
 
         public async Task<bool> UpdateProductAsync(int id, ProductUpdateDto dto)
         {
-            var product = await _context.Products.FindAsync(id);
+            var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id);
             if (product == null) return false;
 
             product.Name = dto.Name;
@@ -197,10 +197,13 @@ namespace backend.Services
 
         public async Task<bool> DeleteProductAsync(int id)
         {
-            var product = await _context.Products.FindAsync(id);
-            if (product == null) return false;
+            var productExists = await _context.Products.AnyAsync(p => p.Id == id);
+            if (!productExists) return false;
 
-            _context.Products.Remove(product);
+            await SoftDeleteCascadeHelper.SoftDeleteProductGraphAsync(
+                _context,
+                _context.Products.Where(product => product.Id == id));
+
             return await _context.SaveChangesAsync() > 0;
         }
     }

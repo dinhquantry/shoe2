@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { couponsApi } from "@/lib/api";
-import type { Coupon } from "@/app/types";
+import type { Coupon } from "@/types";
 
 const couponSchema = z.object({
   code: z.string().min(1, "Mã giảm giá không được để trống"),

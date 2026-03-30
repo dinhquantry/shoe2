@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AdminShell } from "../components/admin/admin_shell";
+import { AdminShell } from "@/components/layout/AdminShell";
 
 export const metadata: Metadata = {
   title: "Admin Dashboard - Atelier",

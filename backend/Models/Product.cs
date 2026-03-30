@@ -1,6 +1,6 @@
 namespace backend.Models
 {
-    public class Product
+    public class Product : SoftDeletableEntity
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
@@ -18,5 +18,12 @@ namespace backend.Models
 
         public virtual ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();
         public virtual ICollection<ProductVariant> Variants { get; set; } = new List<ProductVariant>();
+
+        public override void SoftDelete(DateTime? deletedAt = null)
+        {
+            base.SoftDelete(deletedAt);
+            IsActive = false;
+            IsFeatured = false;
+        }
     }
 }

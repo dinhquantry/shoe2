@@ -1,6 +1,6 @@
 namespace backend.Models
 {
-    public class Coupon
+    public class Coupon : SoftDeletableEntity
     {
         public int Id { get; set; }
         public string Code { get; set; } = string.Empty; // VD: TET2025, FREESHIP
@@ -13,5 +13,11 @@ namespace backend.Models
         public bool IsActive { get; set; } = true;
         public int UsageLimit { get; set; } // Tổng số lần mã này được phép nhập
         public int UsedCount { get; set; } = 0; // Số lần khách hàng đã sử dụng thực tế
+
+        public override void SoftDelete(DateTime? deletedAt = null)
+        {
+            base.SoftDelete(deletedAt);
+            IsActive = false;
+        }
     }
 }

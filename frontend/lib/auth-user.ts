@@ -1,4 +1,4 @@
-import type { AuthUser } from "@/app/types";
+import type { AuthUser } from "@/types";
 
 type JwtPayload = {
   email?: string;

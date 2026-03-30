@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeft, ImagePlus, Loader2, Plus, Trash2, X } from "lucide-react";
-import type { Brand, CategoryTreeNode } from "@/app/types";
+import type { Brand, CategoryTreeNode } from "@/types";
 
 const MAX_IMAGES_PER_PRODUCT = 4;
 

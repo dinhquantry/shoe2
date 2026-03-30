@@ -1,5 +1,5 @@
 import axiosClient from "@/lib/axios";
-import type { ApiSuccessResponse, Coupon } from "@/app/types";
+import type { ApiSuccessResponse, Coupon } from "@/types";
 
 export type CouponPayload = {
   code: string;

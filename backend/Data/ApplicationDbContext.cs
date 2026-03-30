@@ -33,6 +33,7 @@ namespace backend.Data
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Slug).IsRequired().HasMaxLength(100);
                 entity.HasIndex(e => e.Slug).IsUnique();
+                entity.HasQueryFilter(e => !e.IsDeleted);
             });
 
             modelBuilder.Entity<Category>(entity =>
@@ -41,6 +42,7 @@ namespace backend.Data
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Slug).IsRequired().HasMaxLength(100);
                 entity.HasIndex(e => e.Slug).IsUnique();
+                entity.HasQueryFilter(e => !e.IsDeleted);
                 entity.HasOne(d => d.Parent)
                     .WithMany(p => p.Children)
                     .HasForeignKey(d => d.ParentId)
@@ -53,6 +55,7 @@ namespace backend.Data
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
                 entity.HasIndex(e => e.Slug).IsUnique();
                 entity.Property(e => e.BasePrice).HasColumnType("decimal(18,2)");
+                entity.HasQueryFilter(e => !e.IsDeleted);
             });
 
             modelBuilder.Entity<ProductVariant>(entity =>
@@ -60,6 +63,7 @@ namespace backend.Data
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.SKU).IsUnique();
                 entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
+                entity.HasQueryFilter(e => !e.IsDeleted);
                 entity.HasOne(pv => pv.Product)
                     .WithMany(p => p.Variants)
                     .HasForeignKey(pv => pv.ProductId)
@@ -69,23 +73,26 @@ namespace backend.Data
             modelBuilder.Entity<ProductImage>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.HasQueryFilter(e => !e.IsDeleted);
                 entity.HasOne(pi => pi.Product)
                     .WithMany(p => p.Images)
                     .HasForeignKey(pi => pi.ProductId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-            modelBuilder.Entity<CartItem>()
-                .HasOne(ci => ci.User)
-                .WithMany()
-                .HasForeignKey(ci => ci.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<CartItem>(entity =>
+            {
+                entity.HasQueryFilter(e => !e.IsDeleted);
+                entity.HasOne(ci => ci.User)
+                    .WithMany()
+                    .HasForeignKey(ci => ci.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<CartItem>()
-                .HasOne(ci => ci.ProductVariant)
-                .WithMany()
-                .HasForeignKey(ci => ci.ProductVariantId)
-                .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(ci => ci.ProductVariant)
+                    .WithMany()
+                    .HasForeignKey(ci => ci.ProductVariantId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
 
             modelBuilder.Entity<Order>()
                 .HasIndex(o => o.OrderCode)
@@ -97,20 +104,26 @@ namespace backend.Data
                 .HasForeignKey(oi => oi.OrderId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<UserAddress>()
-                .HasOne(ua => ua.User)
-                .WithMany()
-                .HasForeignKey(ua => ua.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<UserAddress>(entity =>
+            {
+                entity.HasQueryFilter(e => !e.IsDeleted);
+                entity.HasOne(ua => ua.User)
+                    .WithMany()
+                    .HasForeignKey(ua => ua.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
 
-            modelBuilder.Entity<Coupon>()
-                .HasIndex(c => c.Code)
-                .IsUnique();
+            modelBuilder.Entity<Coupon>(entity =>
+            {
+                entity.HasIndex(c => c.Code).IsUnique();
+                entity.HasQueryFilter(e => !e.IsDeleted);
+            });
 
             modelBuilder.Entity<CouponUsage>(entity =>
             {
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => new { e.CouponId, e.UserId }).IsUnique();
+                entity.HasQueryFilter(e => !e.Coupon!.IsDeleted);
 
                 entity.HasOne(e => e.Coupon)
                     .WithMany()
@@ -128,21 +141,22 @@ namespace backend.Data
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-            modelBuilder.Entity<Review>()
-                .HasOne(r => r.User)
-                .WithMany()
-                .HasForeignKey(r => r.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Review>(entity =>
+            {
+                entity.HasQueryFilter(r => !r.Product!.IsDeleted);
+                entity.HasOne(r => r.User)
+                    .WithMany()
+                    .HasForeignKey(r => r.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<Review>()
-                .HasOne(r => r.Product)
-                .WithMany()
-                .HasForeignKey(r => r.ProductId)
-                .OnDelete(DeleteBehavior.Cascade);
+                entity.HasOne(r => r.Product)
+                    .WithMany()
+                    .HasForeignKey(r => r.ProductId)
+                    .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<Review>()
-                .HasIndex(r => new { r.UserId, r.ProductId })
-                .IsUnique();
+                entity.HasIndex(r => new { r.UserId, r.ProductId })
+                    .IsUnique();
+            });
         }
     }
 }

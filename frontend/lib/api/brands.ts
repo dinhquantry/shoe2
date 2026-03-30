@@ -1,5 +1,5 @@
 import axiosClient from "@/lib/axios";
-import type { ApiSuccessResponse, Brand } from "@/app/types";
+import type { ApiSuccessResponse, Brand } from "@/types";
 
 export type BrandPayload = {
   name: string;

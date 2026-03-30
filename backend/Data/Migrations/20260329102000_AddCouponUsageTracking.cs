@@ -1,4 +1,6 @@
 using System;
+using backend.Data;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 
@@ -6,6 +8,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace backend.Migrations
 {
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260329102000_AddCouponUsageTracking")]
     public partial class AddCouponUsageTracking : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

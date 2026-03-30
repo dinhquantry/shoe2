@@ -14,7 +14,7 @@ namespace backend.Services
         {
             var hasPurchased = await (from o in _context.Orders
                           join oi in _context.OrderItems on o.Id equals oi.OrderId
-                          join pv in _context.ProductVariants on oi.ProductVariantId equals pv.Id
+                          join pv in _context.ProductVariants.IgnoreQueryFilters() on oi.ProductVariantId equals pv.Id
                           where o.UserId == userId 
                              && o.OrderStatus == 3 // Đã hoàn thành
                              && pv.ProductId == dto.ProductId // Trùng mã sản phẩm gốc

@@ -1,5 +1,5 @@
 import axiosClient from "@/lib/axios";
-import type { ApiSuccessResponse, CategoryTreeNode } from "@/app/types";
+import type { ApiSuccessResponse, CategoryTreeNode } from "@/types";
 
 export type CategoryPayload = {
   name: string;

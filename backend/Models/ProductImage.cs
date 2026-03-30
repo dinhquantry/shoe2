@@ -1,6 +1,6 @@
 namespace backend.Models
 {
-    public class ProductImage
+    public class ProductImage : SoftDeletableEntity
     {
         public int Id { get; set; }
         public string ImageUrl { get; set; } = string.Empty;
@@ -8,5 +8,11 @@ namespace backend.Models
         public virtual Product? Product { get; set; }
         public bool IsMain { get; set; } = false;
         public int SortOrder { get; set; } = 0;
+
+        public override void SoftDelete(DateTime? deletedAt = null)
+        {
+            base.SoftDelete(deletedAt);
+            IsMain = false;
+        }
     }
 }

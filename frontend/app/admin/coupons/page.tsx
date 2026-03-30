@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Plus } from "lucide-react";
 import { CouponDialog } from "./CouponDialog";
-import type { Coupon } from "@/app/types";
+import type { Coupon } from "@/types";
 
 const currencyFormatter = new Intl.NumberFormat("vi-VN", {
   style: "currency",

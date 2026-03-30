@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { brandsApi } from "@/lib/api";
 import { generateSlug } from "@/lib/utils";
-import type { Brand } from "@/app/types";
+import type { Brand } from "@/types";
 
 const brandSchema = z.object({
   name: z.string().min(1, "Tên không được để trống"),

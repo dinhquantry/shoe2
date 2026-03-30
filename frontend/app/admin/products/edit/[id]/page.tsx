@@ -29,12 +29,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ArrowLeft, Edit, Plus, Trash2 } from "lucide-react";
-import { ProductImageManager } from "@/app/components/admin/VariantImageUploadDialog";
+import { ProductImageManager } from "@/components/admin/VariantImageUploadDialog";
 import type {
   Brand,
   CategoryTreeNode,
   ProductVariantSummary,
-} from "@/app/types";
+} from "@/types";
 
 type VariantEditorState = {
   sku: string;

@@ -26,7 +26,9 @@ namespace backend.Services
         {
             ValidateCouponInput(dto);
 
-            var existing = await _context.Coupons.FirstOrDefaultAsync(c => c.Code == dto.Code);
+            var existing = await _context.Coupons
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(c => c.Code == dto.Code);
             if (existing != null) throw new Exception("Ma giam gia nay da ton tai.");
 
             var coupon = new Coupon
@@ -52,10 +54,11 @@ namespace backend.Services
         {
             ValidateCouponInput(dto);
 
-            var coupon = await _context.Coupons.FindAsync(id);
+            var coupon = await _context.Coupons.FirstOrDefaultAsync(c => c.Id == id);
             if (coupon == null) return false;
 
             var existing = await _context.Coupons
+                .IgnoreQueryFilters()
                 .FirstOrDefaultAsync(c => c.Code == dto.Code && c.Id != id);
 
             if (existing != null) throw new Exception("Ma giam gia nay da ton tai.");
@@ -75,12 +78,12 @@ namespace backend.Services
 
         public async Task<bool> SoftDeleteCouponAsync(int id)
         {
-            var coupon = await _context.Coupons.FindAsync(id);
+            var coupon = await _context.Coupons.FirstOrDefaultAsync(c => c.Id == id);
             if (coupon == null) return false;
 
-            if (!coupon.IsActive) return true;
+            if (coupon.IsDeleted) return true;
 
-            coupon.IsActive = false;
+            coupon.SoftDelete();
             return await _context.SaveChangesAsync() > 0;
         }
 
@@ -116,7 +119,7 @@ namespace backend.Services
 
             try
             {
-                var coupon = await _context.Coupons.FindAsync(couponId);
+                var coupon = await _context.Coupons.FirstOrDefaultAsync(c => c.Id == couponId);
                 if (coupon == null) return false;
 
                 if (await _context.CouponUsages.AnyAsync(cu => cu.CouponId == couponId && cu.UserId == userId))
@@ -133,7 +136,7 @@ namespace backend.Services
                 await _context.SaveChangesAsync();
 
                 var affectedRows = await _context.Database.ExecuteSqlInterpolatedAsync(
-                    $"UPDATE Coupons SET UsedCount = UsedCount + 1 WHERE Id = {couponId} AND UsedCount < UsageLimit");
+                    $"UPDATE Coupons SET UsedCount = UsedCount + 1 WHERE Id = {couponId} AND UsedCount < UsageLimit AND IsDeleted = 0");
 
                 if (affectedRows == 0)
                     throw new Exception("Ma giam gia da het luot su dung.");

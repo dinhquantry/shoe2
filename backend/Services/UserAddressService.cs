@@ -50,9 +50,23 @@ namespace backend.Services
             var address = await _context.UserAddresses.FirstOrDefaultAsync(a => a.Id == addressId && a.UserId == userId);
             if (address == null) return false;
 
-            _context.UserAddresses.Remove(address);
-            await _context.SaveChangesAsync();
-            return true;
+            var wasDefault = address.IsDefault;
+            address.SoftDelete();
+
+            if (wasDefault)
+            {
+                var replacement = await _context.UserAddresses
+                    .Where(a => a.UserId == userId && a.Id != addressId)
+                    .OrderByDescending(a => a.CreatedAt)
+                    .FirstOrDefaultAsync();
+
+                if (replacement != null)
+                {
+                    replacement.IsDefault = true;
+                }
+            }
+
+            return await _context.SaveChangesAsync() > 0;
         }
     }
 }

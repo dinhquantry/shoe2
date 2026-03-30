@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { usersApi } from "@/lib/api";
-import type { AdminUser } from "@/app/types";
+import type { AdminUser } from "@/types";
 
 const userSchema = z.object({
   status: z.string(),

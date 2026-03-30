@@ -15,7 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Edit, Package, Plus, Search, Trash2 } from "lucide-react";
-import type { ProductListItem } from "@/app/types";
+import type { ProductListItem } from "@/types";
 import { formatCurrency } from "@/lib/utils";
 
 export default function ProductsPage() {

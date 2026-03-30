@@ -1,6 +1,6 @@
 namespace backend.Models
 {
-    public class Category
+    public class Category : SoftDeletableEntity
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
@@ -10,5 +10,11 @@ namespace backend.Models
         public int? ParentId { get; set; }
         public virtual Category? Parent { get; set; }
         public virtual ICollection<Category> Children { get; set; } = new List<Category>();
+
+        public override void SoftDelete(DateTime? deletedAt = null)
+        {
+            base.SoftDelete(deletedAt);
+            IsActive = false;
+        }
     }
 }

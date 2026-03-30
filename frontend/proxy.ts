@@ -5,8 +5,10 @@ export function proxy(request: NextRequest) {
   const role = request.cookies.get("role")?.value;
   const { pathname } = request.nextUrl;
   const isAuthPage = pathname === "/login" || pathname === "/register";
+  const isAdminPage = pathname.startsWith("/admin");
+  const isProfilePage = pathname.startsWith("/profile");
 
-  if (pathname.startsWith("/admin")) {
+  if (isAdminPage) {
     if (!token) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
@@ -14,6 +16,10 @@ export function proxy(request: NextRequest) {
     if (role !== "Admin") {
       return NextResponse.redirect(new URL("/", request.url));
     }
+  }
+
+  if (isProfilePage && !token) {
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   if (isAuthPage && token) {
@@ -24,5 +30,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/login", "/register"],
+  matcher: ["/admin/:path*", "/profile/:path*", "/login", "/register"],
 };

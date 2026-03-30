@@ -2,7 +2,7 @@
 
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/app/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
 type AdminHeaderProps = {
@@ -35,16 +35,14 @@ export function AdminHeader({ collapsed, onToggle }: AdminHeaderProps) {
       </Button>
 
       <div className="flex items-center gap-3">
-
-           
-
-              <p className="text-sm font-semibold text-zinc-900">
-                {user?.fullName || "Guest User"}
-              </p>
-              <p className="mt-1 text-xs text-zinc-500">
-                {user?.email || "No email available"}
-              </p>
-
+        <div>
+          <p className="text-sm font-semibold text-zinc-900">
+            {user?.fullName || "Guest User"}
+          </p>
+          <p className="mt-1 text-xs text-zinc-500">
+            {user?.email || "No email available"}
+          </p>
+        </div>
       </div>
     </header>
   );

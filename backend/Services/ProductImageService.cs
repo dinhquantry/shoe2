@@ -47,7 +47,8 @@ namespace backend.Services
                 throw new Exception("Khong co file anh nao duoc gui len.");
             }
 
-            var productExists = await _context.Products.FindAsync(dto.ProductId);
+            var productExists = await _context.Products
+                .FirstOrDefaultAsync(product => product.Id == dto.ProductId);
             if (productExists == null)
             {
                 throw new Exception("Khong tim thay san pham.");
@@ -130,7 +131,7 @@ namespace backend.Services
 
         public async Task<bool> SetMainImageAsync(int imageId)
         {
-            var image = await _context.ProductImages.FindAsync(imageId);
+            var image = await _context.ProductImages.FirstOrDefaultAsync(i => i.Id == imageId);
             if (image == null) return false;
 
             var siblingImages = await _context.ProductImages
@@ -148,28 +149,17 @@ namespace backend.Services
 
         public async Task<bool> DeleteImageAsync(int imageId)
         {
-            var image = await _context.ProductImages.FindAsync(imageId);
+            var image = await _context.ProductImages.FirstOrDefaultAsync(i => i.Id == imageId);
             if (image == null) return false;
 
             var productId = image.ProductId;
             var wasMain = image.IsMain;
-
-            var filePath = Path.Combine(
-                _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"),
-                image.ImageUrl.TrimStart('/'));
-
-            if (File.Exists(filePath))
-            {
-                File.Delete(filePath);
-            }
-
-            _context.ProductImages.Remove(image);
-            await _context.SaveChangesAsync();
+            image.SoftDelete();
 
             if (wasMain)
             {
                 var replacement = await _context.ProductImages
-                    .Where(i => i.ProductId == productId)
+                    .Where(i => i.ProductId == productId && i.Id != imageId)
                     .OrderBy(i => i.SortOrder)
                     .ThenBy(i => i.Id)
                     .FirstOrDefaultAsync();
@@ -177,11 +167,10 @@ namespace backend.Services
                 if (replacement != null)
                 {
                     replacement.IsMain = true;
-                    await _context.SaveChangesAsync();
                 }
             }
 
-            return true;
+            return await _context.SaveChangesAsync() > 0;
         }
     }
 }

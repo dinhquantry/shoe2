@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { AuthUser } from "@/app/types";
+
+import type { AuthUser } from "@/types";
 import {
   clearAuthSession,
   getStoredAuthToken,
@@ -41,6 +42,7 @@ export const useAuth = create<AuthState>()(
       logout: () => {
         clearAuthSession();
         set({ user: null });
+
         if (typeof window !== "undefined") {
           window.location.href = "/login";
         }

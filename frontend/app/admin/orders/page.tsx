@@ -1,4 +1,4 @@
-import { AdminPlaceholderPage } from "@/app/components/admin/AdminPlaceholderPage";
+import { AdminPlaceholderPage } from "@/components/admin/AdminPlaceholderPage";
 
 export default function OrdersPage() {
   return (

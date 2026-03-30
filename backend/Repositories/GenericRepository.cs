@@ -1,4 +1,5 @@
 using backend.Data;
+using backend.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace backend.Repositories
@@ -11,7 +12,16 @@ namespace backend.Repositories
         public async Task<T?> GetByIdAsync(int id) => await _context.Set<T>().FindAsync(id);
         public async Task AddAsync(T entity) => await _context.Set<T>().AddAsync(entity);
         public void Update(T entity) => _context.Set<T>().Update(entity);
-        public void Delete(T entity) => _context.Set<T>().Remove(entity);
+        public void Delete(T entity)
+        {
+            if (entity is SoftDeletableEntity softDeletableEntity)
+            {
+                softDeletableEntity.SoftDelete();
+                return;
+            }
+
+            _context.Set<T>().Remove(entity);
+        }
         public async Task<bool> SaveChangesAsync() => await _context.SaveChangesAsync() > 0;
     }
 }

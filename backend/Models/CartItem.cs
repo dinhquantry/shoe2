@@ -1,6 +1,6 @@
 namespace backend.Models
 {
-    public class CartItem
+    public class CartItem : SoftDeletableEntity
     {
         public int Id { get; set; }
 

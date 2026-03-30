@@ -9,7 +9,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
-import type { ApiErrorResponse } from "@/app/types";
+import type { ApiErrorResponse } from "@/types";
 import { PasswordField } from "@/app/(auth)/_components/password-field";
 import { authApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";

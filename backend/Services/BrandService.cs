@@ -25,7 +25,7 @@ namespace backend.Services
 
         public async Task<bool> UpdateBrandAsync(int id, Brand brand)
         {
-            var existing = await _context.Brands.FindAsync(id);
+            var existing = await _context.Brands.FirstOrDefaultAsync(b => b.Id == id);
             if (existing == null) return false;
 
             existing.Name = brand.Name;
@@ -38,10 +38,16 @@ namespace backend.Services
 
         public async Task<bool> DeleteBrandAsync(int id)
         {
-            var brand = await _context.Brands.FindAsync(id);
+            var brand = await _context.Brands.FirstOrDefaultAsync(b => b.Id == id);
             if (brand == null) return false;
 
-            _context.Brands.Remove(brand);
+            var deletedAt = DateTime.UtcNow;
+            brand.SoftDelete(deletedAt);
+            await SoftDeleteCascadeHelper.SoftDeleteProductGraphAsync(
+                _context,
+                _context.Products.Where(product => product.BrandId == id),
+                deletedAt);
+
             return await _context.SaveChangesAsync() > 0;
         }
     }

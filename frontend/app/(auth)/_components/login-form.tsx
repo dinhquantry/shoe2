@@ -8,8 +8,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
-import type { ApiErrorResponse } from "@/app/types";
-import { useAuth } from "@/app/hooks/useAuth";
+import type { ApiErrorResponse } from "@/types";
+import { useAuth } from "@/hooks/useAuth";
 import { authApi } from "@/lib/api";
 import { parseAuthUserFromToken } from "@/lib/auth-user";
 import { Button } from "@/components/ui/button";

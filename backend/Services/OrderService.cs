@@ -93,7 +93,12 @@ namespace backend.Services
                 order.TotalAmount = subTotal - order.DiscountAmount;
 
                 _context.Orders.Add(order);
-                _context.CartItems.RemoveRange(cartItems);
+
+                foreach (var cartItem in cartItems)
+                {
+                    cartItem.SoftDelete();
+                }
+
                 await _context.SaveChangesAsync();
 
                 if (coupon != null)

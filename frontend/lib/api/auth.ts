@@ -1,4 +1,4 @@
-import type { AuthLoginResponse, AuthRegisterResponse } from "@/app/types";
+import type { AuthLoginResponse, AuthRegisterResponse } from "@/types";
 import axiosClient from "@/lib/axios";
 
 export type LoginPayload = {

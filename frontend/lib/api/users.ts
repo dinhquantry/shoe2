@@ -1,5 +1,5 @@
 import axiosClient from "@/lib/axios";
-import type { AdminUser, ApiSuccessResponse } from "@/app/types";
+import type { AdminUser, ApiSuccessResponse } from "@/types";
 
 export const usersApi = {
   async list(search?: string) {

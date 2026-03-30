@@ -1,6 +1,6 @@
 namespace backend.Models
 {
-    public class UserAddress
+    public class UserAddress : SoftDeletableEntity
     {
         public int Id { get; set; }
         public int UserId { get; set; }
@@ -17,5 +17,11 @@ namespace backend.Models
         
         public bool IsDefault { get; set; } = false;
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        public override void SoftDelete(DateTime? deletedAt = null)
+        {
+            base.SoftDelete(deletedAt);
+            IsDefault = false;
+        }
     }
 }

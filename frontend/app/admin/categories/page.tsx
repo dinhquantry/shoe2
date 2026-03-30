@@ -21,7 +21,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { CategoryDialog } from "./CategoryDialog";
-import type { CategoryTreeNode } from "@/app/types";
+import type { CategoryTreeNode } from "@/types";
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<CategoryTreeNode[]>([]);

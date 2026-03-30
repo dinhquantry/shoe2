@@ -57,7 +57,8 @@ namespace backend.Services
         // 2. THÊM VÀO GIỎ HÀNG
         public async Task<bool> AddItemToCartAsync(int userId, AddToCartDto dto)
         {
-            var variant = await _context.ProductVariants.FindAsync(dto.ProductVariantId);
+            var variant = await _context.ProductVariants
+                .FirstOrDefaultAsync(v => v.Id == dto.ProductVariantId);
             if (variant == null) throw new Exception("Biến thể sản phẩm không tồn tại.");
             if (variant.StockQuantity < dto.Quantity) throw new Exception("Không đủ số lượng trong kho.");
 
@@ -101,7 +102,7 @@ namespace backend.Services
             if (quantity <= 0) 
             {
                 // Nếu số lượng <= 0 thì xóa luôn khỏi giỏ
-                _context.CartItems.Remove(item);
+                item.SoftDelete();
             }
             else
             {
@@ -123,7 +124,7 @@ namespace backend.Services
 
             if (itemToRemove == null) return false;
 
-            _context.CartItems.Remove(itemToRemove);
+            itemToRemove.SoftDelete();
             return await _context.SaveChangesAsync() > 0;
         }
     }

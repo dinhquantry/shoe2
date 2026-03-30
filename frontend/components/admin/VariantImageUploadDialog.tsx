@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ImageIcon, Loader2, Star, Trash2, UploadCloud, X } from "lucide-react";
 import { productImagesApi } from "@/lib/api";
 import { API_BASE_URL } from "@/lib/axios";
-import type { ProductImageItem } from "@/app/types";
+import type { ProductImageItem } from "@/types";
 
 interface ProductImageUploadDialogProps {
   open: boolean;

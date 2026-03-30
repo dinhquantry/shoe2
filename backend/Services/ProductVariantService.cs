@@ -22,7 +22,9 @@ namespace backend.Services
                 throw new Exception("Khong tim thay san pham goc.");
             }
 
-            var skuExists = await _context.ProductVariants.AnyAsync(v => v.SKU == dto.SKU);
+            var skuExists = await _context.ProductVariants
+                .IgnoreQueryFilters()
+                .AnyAsync(v => v.SKU == dto.SKU);
             if (skuExists)
             {
                 throw new Exception("Ma SKU nay da ton tai trong he thong.");
@@ -46,10 +48,11 @@ namespace backend.Services
 
         public async Task<bool> UpdateVariantAsync(int id, VariantUpdateDto dto)
         {
-            var variant = await _context.ProductVariants.FindAsync(id);
+            var variant = await _context.ProductVariants.FirstOrDefaultAsync(v => v.Id == id);
             if (variant == null) return false;
 
             var skuExists = await _context.ProductVariants
+                .IgnoreQueryFilters()
                 .AnyAsync(v => v.Id != id && v.SKU == dto.SKU);
             if (skuExists)
             {
@@ -69,10 +72,21 @@ namespace backend.Services
 
         public async Task<bool> DeleteVariantAsync(int id)
         {
-            var variant = await _context.ProductVariants.FindAsync(id);
+            var variant = await _context.ProductVariants.FirstOrDefaultAsync(v => v.Id == id);
             if (variant == null) return false;
 
-            _context.ProductVariants.Remove(variant);
+            var deletedAt = DateTime.UtcNow;
+            variant.SoftDelete(deletedAt);
+
+            var relatedCartItems = await _context.CartItems
+                .Where(item => item.ProductVariantId == id)
+                .ToListAsync();
+
+            foreach (var cartItem in relatedCartItems)
+            {
+                cartItem.SoftDelete(deletedAt);
+            }
+
             return await _context.SaveChangesAsync() > 0;
         }
     }

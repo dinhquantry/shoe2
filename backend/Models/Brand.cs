@@ -1,11 +1,17 @@
 namespace backend.Models
 {
-    public class Brand
+    public class Brand : SoftDeletableEntity
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public string Slug { get; set; } = string.Empty; 
         public bool IsActive { get; set; } = true;
+
+        public override void SoftDelete(DateTime? deletedAt = null)
+        {
+            base.SoftDelete(deletedAt);
+            IsActive = false;
+        }
     }
 }

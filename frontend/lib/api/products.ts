@@ -3,7 +3,7 @@ import type {
   ApiSuccessResponse,
   ProductDetail,
   ProductListResponse,
-} from "@/app/types";
+} from "@/types";
 
 export type ProductVariantPayload = {
   sku: string;

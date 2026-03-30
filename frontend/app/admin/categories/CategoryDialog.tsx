@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { categoriesApi } from "@/lib/api";
 import { generateSlug } from "@/lib/utils";
-import type { CategoryTreeNode } from "@/app/types";
+import type { CategoryTreeNode } from "@/types";
 
 const categorySchema = z.object({
   name: z.string().min(1, "Tên danh mục không được để trống"),

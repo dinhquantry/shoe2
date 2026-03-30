@@ -71,7 +71,7 @@ namespace backend.Services
 
         public async Task<bool> UpdateAsync(int id, Category category)
         {
-            var existing = await _context.Categories.FindAsync(id);
+            var existing = await _context.Categories.FirstOrDefaultAsync(c => c.Id == id);
             if (existing == null) return false;
 
             if (category.ParentId == id)
@@ -101,7 +101,7 @@ namespace backend.Services
 
         public async Task<bool> DeleteAsync(int id)
         {
-            var category = await _context.Categories.FindAsync(id);
+            var category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == id);
             if (category == null) return false;
 
             var hasChildren = await _context.Categories.AnyAsync(c => c.ParentId == id);
@@ -110,7 +110,13 @@ namespace backend.Services
                 throw new InvalidOperationException("Khong the xoa danh muc dang co danh muc con.");
             }
 
-            _context.Categories.Remove(category);
+            var deletedAt = DateTime.UtcNow;
+            category.SoftDelete(deletedAt);
+            await SoftDeleteCascadeHelper.SoftDeleteProductGraphAsync(
+                _context,
+                _context.Products.Where(product => product.CategoryId == id),
+                deletedAt);
+
             return await _context.SaveChangesAsync() > 0;
         }
     }

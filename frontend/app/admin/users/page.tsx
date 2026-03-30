@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/table";
 import { Edit, Search, Shield, UserCheck, Users } from "lucide-react";
 import { UserDialog } from "./UserDialog";
-import type { AdminUser } from "@/app/types";
+import type { AdminUser } from "@/types";
 
 const dateFormatter = new Intl.DateTimeFormat("vi-VN", {
   dateStyle: "short",

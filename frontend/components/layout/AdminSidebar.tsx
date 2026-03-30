@@ -14,7 +14,7 @@ import {
   TicketPercent,
   Users,
 } from "lucide-react";
-import { useAuth } from "@/app/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
 const adminMenuItems = [

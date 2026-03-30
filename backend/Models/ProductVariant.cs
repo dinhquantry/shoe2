@@ -1,6 +1,6 @@
 namespace backend.Models
 {
-    public class ProductVariant
+    public class ProductVariant : SoftDeletableEntity
     {
         public int Id { get; set; }
         public int ProductId { get; set; }
@@ -12,5 +12,11 @@ namespace backend.Models
         public decimal Price { get; set; }
         public int StockQuantity { get; set; }
         public bool IsActive { get; set; } = true;
+
+        public override void SoftDelete(DateTime? deletedAt = null)
+        {
+            base.SoftDelete(deletedAt);
+            IsActive = false;
+        }
     }
 }
